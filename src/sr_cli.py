@@ -1,5 +1,6 @@
 import pandas as pd
 
+from platform import system
 pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
 import numpy as np
@@ -7,6 +8,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
 import time
+import os.path
+from os import path
 
 import yfinance as yahoo_finance
 
@@ -15,8 +18,7 @@ from mplfinance.original_flavor import candlestick2_ohlc
 
 from argparse import ArgumentParser
 
-
-def createZigZagPoints(dfSeries, minSegSize=0.1, sizeInDevs=0.5):
+def createZigZagPoints(dfSeries, minSegSize):
     minRetrace = minSegSize
 
     curVal = dfSeries[0]
@@ -73,6 +75,14 @@ parser.add_argument(
     help="Max %% difference between two points to group them together. Default: 0.05",
 )
 parser.add_argument(
+    "-s",
+    "--seg-size",
+    default="0.05",
+    type=float,
+    required=False,
+    help="Max %% difference between two points to group them together. Default: 0.05",
+)
+parser.add_argument(
     "--time",
     default="150",
     type=int,
@@ -95,15 +105,22 @@ parser.add_argument(
     required=False,
     help="Min number of bars from the start the support/resistance line has to be at to display chart. Default: 150",
 )
+
+parser.add_argument(
+    "--title",
+    type=str,
+    required=False,
+    help="Title of the file to save the chart to",
+)
 args = parser.parse_args()
 
 # S&P 500 Tickers
+# fmt: off
 if args.tickers == "SPY500":
-    # fmt: off
     tickers = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD", "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN", "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP", "ABC", "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS", "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG", "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR", "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB", "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR", "BF-B", "CHRW", "COG", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL", "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CTL", "CERN", "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF", "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO", "CTSH", "CL", "CMCSA", "CMA", "CAG", "CXO", "COP", "ED", "STZ", "COO", "CPRT", "GLW", "CTVA", "COST", "COTY", "CCI", "CSX", "CMI", "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN", "DXCM", "FANG", "DLR", "DFS", "DISCA", "DISCK", "DISH", "DG", "DLTR", "D", "DPZ", "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC", "ETFC", "EMN", "ETN", "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX", "EQIX", "EQR", "ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE", "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT", "FDX", "FIS", "FITB", "FE", "FRC", "FISV", "FLT", "FLIR", "FLS", "FMC", "F", "FTNT", "FTV", "FBHS", "FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT", "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW", "HRB", "HAL", "HBI", "HIG", "HAS", "HCA", "PEAK", "HSIC", "HSY", "HES", "HPE", "HLT", "HFC", "HOLX", "HD", "HON", "HRL", "HST", "HWM", "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "INFO", "ITW", "ILMN", "INCY", "IR", "INTC", "ICE", "IBM", "IP", "IPG", "IFF", "INTU", "ISRG", "IVZ", "IPGP", "IQV", "IRM", "JKHY", "J", "JBHT", "SJM", "JNJ", "JCI", "JPM", "JNPR", "KSU", "K", "KEY", "KEYS", "KMB", "KIM", "KMI", "KLAC", "KSS", "KHC", "KR", "LB", "LHX", "LH", "LRCX", "LW", "LVS", "LEG", "LDOS", "LEN", "LLY", "LNC", "LIN", "LYV", "LKQ", "LMT", "L", "LOW", "LYB", "MTB", "MRO", "MPC", "MKTX", "MAR", "MMC", "MLM", "MAS", "MA", "MKC", "MXIM", "MCD", "MCK", "MDT", "MRK", "MET", "MTD", "MGM", "MCHP", "MU", "MSFT", "MAA", "MHK", "TAP", "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "MYL", "NDAQ", "NOV", "NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN", "NKE", "NI", "NBL", "NSC", "NTRS", "NOC", "NLOK", "NCLH", "NRG", "NUE", "NVDA", "NVR", "ORLY", "OXY", "ODFL", "OMC", "OKE", "ORCL", "OTIS", "PCAR", "PKG", "PH", "PAYX", "PAYC", "PYPL", "PNR", "PBCT", "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC", "PPG", "PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA", "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL", "RJF", "RTX", "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL", "ROP", "ROST", "RCL", "SPGI", "CRM", "SBAC", "SLB", "STX", "SEE", "SRE", "NOW", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SWK", "SBUX", "STT", "STE", "SYK", "SIVB", "SYF", "SNPS", "SYY", "TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TDY", "TFX", "TXN", "TXT", "TMO", "TIF", "TJX", "TSCO", "TT", "TDG", "TRV", "TFC", "TWTR", "TYL", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UHS", "UNM", "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAC", "V", "VNO", "VMC", "WRB", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WFC", "WELL", "WST", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX", "XYL", "YUM", "ZBRA", "ZBH", "ZION", "ZTS"]
-    # fmt: on
 else:
     tickers = args.tickers.split(",")
+# fmt: on
 
 connected = False
 while not connected:
@@ -111,93 +128,127 @@ while not connected:
         ticker_df = web.get_data_yahoo(
             tickers, period=args.period, interval=args.interval
         )
-        ticker_df = ticker_df.reset_index()
+        ticker_df = ticker_df.iloc[350:750].reset_index()
+        # import pdbr; pdbr.set_trace()
         connected = True
     except Exception as e:
         print("type error: " + str(e))
         time.sleep(5)
         pass
 
-for ticker in tickers:
-    print("\n\n" + ticker)
-    try:
-        x_max = 0
-        fig, ax = plt.subplots()
-        if len(tickers) != 1:
-            dfRes = createZigZagPoints(ticker_df.Close[ticker]).dropna()
-            candlestick2_ohlc(
-                ax,
-                ticker_df["Open"][ticker],
-                ticker_df["High"][ticker],
-                ticker_df["Low"][ticker],
-                ticker_df["Close"][ticker],
-                width=0.6,
-                colorup="g",
-                colordown="r",
-            )
-        else:
-            dfRes = createZigZagPoints(ticker_df.Close).dropna()
-            candlestick2_ohlc(
-                ax,
-                ticker_df["Open"],
-                ticker_df["High"],
-                ticker_df["Low"],
-                ticker_df["Close"],
-                width=0.6,
-                colorup="g",
-                colordown="r",
-            )
 
-        plt.plot(dfRes["Value"])
-        removed_indexes = []
-        for index, row in dfRes.iterrows():
-            if not (index in removed_indexes):
-                dropindexes = []
-                dropindexes.append(index)
-                counter = 0
-                values = []
-                values.append(row.Value)
-                startx = index
-                endx = index
-                dir = row.Dir
-                for index2, row2 in dfRes.iterrows():
-                    if not (index2 in removed_indexes):
-                        if (
-                            index != index2
-                            and abs(index2 - index) < args.time
-                            and row2.Dir == dir
-                        ):
-                            if abs((row.Value / row2.Value) - 1) < (args.dif / 100):
-                                dropindexes.append(index2)
-                                values.append(row2.Value)
-                                if index2 < startx:
-                                    startx = index2
-                                elif index2 > endx:
-                                    endx = index2
-                                counter = counter + 1
-                if counter > args.number:
-                    sum = 0
-                    print("Support at ", end="")
-                    for i in range(len(values) - 1):
-                        print("{:0.2f} and ".format(values[i]), end="")
-                    print("{:0.2f} \n".format(values[len(values) - 1]), end="")
-                    removed_indexes.extend(dropindexes)
-                    for value in values:
-                        sum = sum + value
-                    if endx > x_max:
-                        x_max = endx
-                    plt.hlines(
-                        y=sum / len(values),
-                        xmin=startx,
-                        xmax=endx,
-                        linewidth=1,
-                        color="r",
-                    )
-        if x_max > args.min:
-            plt.title(ticker)
-            plt.show()
-        plt.clf()
-        plt.cla()
-        plt.close()
-    except Exception as e:
-        print(e)
+def run(args):
+    for ticker in tickers:
+        # print("\n\n" + ticker)
+        try:
+            # title = f"{ticker} {args.title}"
+            if args.title:
+                title = args.title
+                outfile = f"out/{title}.jpg"
+                if path.exists(outfile):
+                    print("skipping", outfile)
+                    return
+                else:
+                    print("creating", outfile)
+            x_max = 0
+            fig, ax = plt.subplots(figsize=(15, 8))
+            fig.tight_layout()
+            if len(tickers) != 1:
+                dfRes = createZigZagPoints(ticker_df.Close[ticker], args.seg_size).dropna()
+                candlestick2_ohlc(
+                    ax,
+                    ticker_df["Open"][ticker],
+                    ticker_df["High"][ticker],
+                    ticker_df["Low"][ticker],
+                    ticker_df["Close"][ticker],
+                    width=0.5,
+                    colorup="g",
+                    colordown="r",
+                )
+            else:
+                dfRes = createZigZagPoints(ticker_df.Close, args.seg_size).dropna()
+                candlestick2_ohlc(
+                    ax,
+                    ticker_df["Open"],
+                    ticker_df["High"],
+                    ticker_df["Low"],
+                    ticker_df["Close"],
+                    width=0.5,
+                    colorup="g",
+                    colordown="r",
+                )
+
+            # plt.plot(dfRes["Value"])
+            removed_indexes = []
+            for index, row in dfRes.iterrows():
+                if not (index in removed_indexes):
+                    dropindexes = []
+                    dropindexes.append(index)
+                    counter = 0
+                    values = []
+                    values.append(row.Value)
+                    startx = index
+                    endx = index
+                    dir = row.Dir
+                    for index2, row2 in dfRes.iterrows():
+                        if not (index2 in removed_indexes):
+                            if (
+                                index != index2
+                                and abs(index2 - index) < args.time
+                                and row2.Dir == dir
+                            ):
+                                # print(abs((row.Value / row2.Value) - 1),  (args.dif / 100))
+                                if abs((row.Value / row2.Value) - 1) < (args.dif / 100):
+                                    dropindexes.append(index2)
+                                    values.append(row2.Value)
+                                    if index2 < startx:
+                                        startx = index2
+                                    elif index2 > endx:
+                                        endx = index2
+                                    counter = counter + 1
+                    if counter > args.number:
+                        sum = 0
+                        # print("Support at ", end="")
+                        # for i in range(len(values) - 1):
+                        #     print("{:0.2f} and ".format(values[i]), end="")
+                        # print("{:0.2f} \n".format(values[len(values) - 1]), end="")
+                        removed_indexes.extend(dropindexes)
+                        for value in values:
+                            sum = sum + value
+                        if endx > x_max:
+                            x_max = endx
+                        plt.hlines(
+                            y=sum / len(values),
+                            xmin=startx,
+                            xmax=endx,
+                            linewidth=1,
+                            color="g",
+                        )
+            if x_max > args.min:
+                if args.title:
+                    plt.title(title)
+                    plt.savefig(outfile)
+                else:
+                    plt.title(ticker)
+                plt.show()
+            plt.clf()
+            plt.cla()
+            plt.close()
+        except Exception as e:
+            print(e)
+
+run(args)
+
+# for dif in [3,4,5,6,7,8,9,10,12]:
+#     for num in [2]:
+#         for seg in [2,3,5,7,10,12]:
+#             if dif < seg: continue
+#             args.seg_size = seg
+#             args.min = minVal
+#             args.dif = dif
+#             args.number = num
+#             args.time = time
+#             # args.title = f"{args.number}-{args.dif}"
+#             args.title = f"dif-{args.dif} "
+#             args.title += f"seg-{args.seg_size} num-{args.number}"
+#             run(args)

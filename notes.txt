@@ -7,7 +7,6 @@ zone to zone trading
 - path of least resistence
 
 
-
 box1:
 
 2:00 - what are zones
@@ -15,11 +14,14 @@ box1:
 and helps us define the price range in which its not trending
 
 
+Box2:
+
 Aayush Questions:
 - do you need lower than 1 day timeframes to draw boxes?
+- do you need moving average indicators to draw the boxes?
+
 
 S/R levels
-
 
 # code
 https://github.com/BatuhanUsluel/Algorithmic-Support-and-Resistance
@@ -56,3 +58,24 @@ the resistence line and instead swung away from it most of the time, therefore i
 does the fact that the three bars preceding the highest bar all had demonstrated resistence at that level before the next bar broke out?
 
 157.22 169.7 169.45 170.97 176.55 158.8
+
+
+num 2
+
+seg 12- best dif is 10/12
+seg 10- best dif is 10/12
+seg 7 - best dif is 9
+seg 6 - dif 6,7,8
+seg 5 3=4=5=6
+seg 4
+
+
+questions to :
+- what's the exact output of the filter
+- do you need moving average indicators to draw the boxes?
+
+Next steps:
+- converting max difference/min retrace parameters to be a function of recent volatility (e.g. average daily range, max range over past n days / price)
+- validate across full dataset for ROKU, then for many different instruments
+- experiment with using different parameters for the inner S/R levels vs the outer levels of the box if necessary
+- determine what the precise output of the filter should be and make it work across all necessary instruments (top 20 stocks for each sector)
