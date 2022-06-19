@@ -1,0 +1,58 @@
+zone to zone trading
+
+- identifying support/resistance levels
+- a price level that's important on a higher time frame is equally if not more important on a lower timeframe
+- that's why we start analysis on weekly chart, then we go lower
+
+- path of least resistence
+
+
+
+box1:
+
+2:00 - what are zones
+6:08 - boxes define the periods in time where the asset is not trending
+and helps us define the price range in which its not trending
+
+
+Aayush Questions:
+- do you need lower than 1 day timeframes to draw boxes?
+
+S/R levels
+
+
+# code
+https://github.com/BatuhanUsluel/Algorithmic-Support-and-Resistance
+https://github.com/yongghongg/stock-screener/blob/main/stock_breakout_demo.ipynb
+
+# articles
+https://www.flowbank.com/en/research/price-action-trading-strategy-supply-demand-zones
+https://stackoverflow.com/questions/8587047/support-resistance-algorithm-technical-analysis/8590007#8590007
+https://towardsdatascience.com/trading-toolbox-04-subplots-f6c353278f78
+https://medium.com/@judopro/using-machine-learning-to-programmatically-determine-stock-support-and-resistance-levels-9bb70777cf8e
+https://yonghongtan.medium.com/
+https://www.kaggle.com/code/dhimananubhav/identify-support-resistance-trendlines/notebook
+
+
+
+defining resistence levels
+
+- y/price distance between the highs
+
+in the case of Roku, this difference is significant, which makes it hard to consider as part of the same resistence level
+
+we have 176.55 168.85
+
+in the case of the 176.55 bar, there's only one bar that consists outside of the resistence level, so that may influence the determination
+
+we have the x-distance, or time, in between the resistence tests
+
+there's the empty space between the resistence tests (literal chart volume consisting of x-distance and y-distance that may influence the closeness determination
+
+while these two mid-term maximas might not be that close, they may be considered "closer" considering that the price did not teeter around
+the resistence line and instead swung away from it most of the time, therefore it had a major gap in space in terms of price and time.
+
+
+does the fact that the three bars preceding the highest bar all had demonstrated resistence at that level before the next bar broke out?
+
+157.22 169.7 169.45 170.97 176.55 158.8

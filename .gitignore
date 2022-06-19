@@ -1,0 +1,6 @@
+.DS_Store
+.ipynb_checkpoints/
+/videos
+__pycache__
+lib/
+data/
