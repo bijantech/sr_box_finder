@@ -45,46 +45,47 @@ parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
     "-t",
     "--tickers",
-    default="SPY500",
+    default="ROKU",
     type=str,
     required=False,
-    help="Used to look up a specific tickers. Commma seperated. Example: MSFT,AAPL,AMZN default: List of S&P 500 companies",
+    # help="Used to look up a specific tickers. Commma seperated. Example: MSFT,AAPL,AMZN default: List of S&P 500 companies",
+    help="Used to look up a specific tickers.",
 )
 parser.add_argument(
     "-p",
     "--period",
-    default="1d",
+    default="5y",
     type=str,
     required=False,
-    help="Period to look back. valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max. default: 1d",
+    help="Period to look back. valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max. default: 5y",
 )
 parser.add_argument(
     "-i",
     "--interval",
-    default="1m",
+    default="1d",
     type=str,
     required=False,
-    help="Interval of each bar. valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo. default: 1m",
+    help="Interval of each bar. valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo. default: 1d",
 )
 parser.add_argument(
     "-d",
     "--dif",
-    default="0.05",
+    default="10",
     type=float,
     required=False,
-    help="Max %% difference between two points to group them together. Default: 0.05",
+    help="Max %% difference between two points to group them together. Default: 10",
 )
 parser.add_argument(
     "-s",
     "--seg-size",
-    default="0.05",
+    default="10",
     type=float,
     required=False,
-    help="Max %% difference between two points to group them together. Default: 0.05",
+    help="Segment Size Minimum %",
 )
 parser.add_argument(
     "--time",
-    default="150",
+    default="365",
     type=int,
     required=False,
     help="Max time measured in number of bars between two points to be grouped together. Default: 150",
@@ -92,7 +93,7 @@ parser.add_argument(
 parser.add_argument(
     "-n",
     "--number",
-    default="3",
+    default="2",
     type=int,
     required=False,
     help="Min number of points in price range to draw a support/resistance line. Default: 3",
@@ -112,6 +113,18 @@ parser.add_argument(
     required=False,
     help="Title of the file to save the chart to",
 )
+parser.add_argument(
+    "--start-date",
+    type=str,
+    required=False,
+    help="Start Date",
+)
+parser.add_argument(
+    "--stop-date",
+    type=str,
+    required=False,
+    help="Stop Date",
+)
 args = parser.parse_args()
 
 # S&P 500 Tickers
@@ -125,10 +138,17 @@ else:
 connected = False
 while not connected:
     try:
-        ticker_df = web.get_data_yahoo(
-            tickers, period=args.period, interval=args.interval
-        )
-        ticker_df = ticker_df.iloc[350:750].reset_index()
+        ticker_df = web.get_data_yahoo( tickers, period=args.period, interval=args.interval)
+
+        if args.start_date:
+            ticker_df = ticker_df[args.start_date:]
+
+        if args.stop_date:
+            ticker_df = ticker_df[:args.stop_date]
+
+        # ticker_df = ticker_df.iloc[350:750].reset_index()
+        ticker_df  = ticker_df.reset_index()
+
         # import pdbr; pdbr.set_trace()
         connected = True
     except Exception as e:
@@ -139,7 +159,7 @@ while not connected:
 
 def run(args):
     for ticker in tickers:
-        # print("\n\n" + ticker)
+        print("\n\n" + ticker)
         try:
             # title = f"{ticker} {args.title}"
             if args.title:
@@ -230,6 +250,7 @@ def run(args):
                     plt.savefig(outfile)
                 else:
                     plt.title(ticker)
+
                 plt.show()
             plt.clf()
             plt.cla()
