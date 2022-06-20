@@ -31,7 +31,8 @@ def createZigZagPoints(dfSeries, minRetrace):
             curPos = ln
         else:
             retracePrc = abs((dfSeries[ln] - curVal) / curVal * 100)
-            if retracePrc >= minRetrace:
+            # print(minRetrace[ln] / args.seg_size)
+            if retracePrc >= (minRetrace[ln] / args.seg_size):
                 dfRes.loc[curPos, "Value"] = curVal
                 dfRes.loc[curPos, "Dir"] = curDir
                 curVal = dfSeries[ln]
@@ -144,7 +145,7 @@ parser.add_argument(
     help="Run many variables and save file (wont display)",
 )
 parser.add_argument(
-    "--hide-candles",
+    "--no-candle",
     action='store_true',
     required=False,
     help="Dont show candlesticks",
@@ -163,17 +164,11 @@ connected = False
 while not connected:
     try:
         ticker_df = web.get_data_yahoo(tickers, period=args.period, interval=args.interval)
-
         if args.start_date:
             ticker_df = ticker_df[args.start_date:]
-
         if args.stop_date:
             ticker_df = ticker_df[:args.stop_date]
-
-        # ticker_df = ticker_df.iloc[350:750].reset_index()
         ticker_df  = ticker_df.reset_index()
-
-        # import pdbr; pdbr.set_trace()
         connected = True
     except Exception as e:
         print("type error: " + str(e))
@@ -184,59 +179,67 @@ def run(args):
     for ticker in tickers:
         # print("\n\n" + ticker)
         try:
-            # title = f"{ticker} {args.title}"
             if args.title:
                 title = f"{ticker}/{args.title}"
                 outfile = f"out/{title}.jpg"
-                # print(outfile)
                 if path.exists(outfile):
                     print("skipping", outfile)
                     return
                 else:
                     print("\n\ncreating", outfile)
+
             x_max = 0
-            fig, ax = plt.subplots(figsize=(15, 8))
+
+            fig, axs = plt.subplots(
+                2,
+                sharex=True,
+                sharey=False,
+                figsize=(15, 8),
+                gridspec_kw={'height_ratios': [5, 1]},)
+            ax = axs[0]
+            ax.set_ylim([ticker_df.Low.min()*0.95, ticker_df.High.max()*1.05])
             ax.yaxis.set_label_position("right")
             ax.yaxis.tick_right()
-            cursor = Cursor(ax, color='green', linewidth=2)
+            axs[1].yaxis.tick_right()
+            # axs[2].yaxis.tick_right()
+            cursor = Cursor(axs[1], color='gray', linewidth=1)
             # ax.xaxis.set_major_locator(DayLocator())
             # ax.xaxis.set_major_formatter(DateFormatter('%Y%m'))
             fig.tight_layout()
-            if len(tickers) != 1:
-                dfRes = createZigZagPoints(ticker_df.Close[ticker], args.seg_size).dropna()
-                if not args.hide_candles:
-                    candlestick2_ohlc(
-                        ax,
-                        ticker_df["Open"][ticker],
-                        ticker_df["High"][ticker],
-                        ticker_df["Low"][ticker],
-                        ticker_df["Close"][ticker],
-                        width=0.5,
-                        colorup="g",
-                        colordown="r",
-                    )
-            else:
-                dfRes = createZigZagPoints(ticker_df.Close, args.seg_size).dropna()
-                if not args.hide_candles:
-                    candlestick2_ohlc(
-                        ax,
-                        ticker_df["Open"],
-                        ticker_df["High"],
-                        ticker_df["Low"],
-                        ticker_df["Close"],
-                        width=0.5,
-                        colorup="g",
-                        colordown="r",
-                    )
+            fig.subplots_adjust(wspace=0, hspace=0)
+
+            ticker_df['Range'] = ticker_df.High - ticker_df.Low
+            ticker_df['AvgRng'] = ticker_df.Range.rolling(100).mean()
+            ticker_df['RollingMax'] = ticker_df.High.rolling(100).max()
+            ticker_df['RollingMin'] = ticker_df.Low.rolling(100).min()
+            ticker_df['RollingRng'] = (ticker_df.RollingMax - ticker_df.RollingMin)
+
+            dfRes = createZigZagPoints(ticker_df.Close, ticker_df.RollingRng).dropna()
+
+            if not args.no_candle:
+                candlestick2_ohlc(
+                    ax,
+                    ticker_df["Open"],
+                    ticker_df["High"],
+                    ticker_df["Low"],
+                    ticker_df["Close"],
+                    width=0.5,
+                    colorup="g",
+                    colordown="r",
+                )
 
             # print(dfRes)
-            plt.plot(dfRes["Value"])
+            # axs[1].plot(ticker_df.Range)
+            axs[1].plot(ticker_df.RollingRng)
             removed_indexes = []
             if args.target_max:
                 has_line_near_target = False
             else:
                 has_line_near_target = True
+
+            # draw S/R lines
             for index, row in dfRes.iterrows():
+                if index < 100: continue
                 if not (index in removed_indexes):
                     dropindexes = []
                     dropindexes.append(index)
@@ -262,7 +265,7 @@ def run(args):
                                     elif index2 > endx:
                                         endx = index2
                                     counter = counter + 1
-                    if counter >= args.number:
+                    if counter + 1 >= args.number:
                         sum = 0
                         print("Support at ", end="")
                         for i in range(len(values) - 1):
@@ -275,22 +278,24 @@ def run(args):
                             sum = sum + value
                         if endx > x_max:
                             x_max = endx
-                        plt.hlines(
+                        ax.hlines(
                             y=sum / len(values),
                             xmin=startx,
                             xmax=endx,
                             linewidth=1,
                             color="g",
                         )
-            # print("x_max", x_max, args.min)
+
+            ax.plot(dfRes["Value"])
+
             if has_line_near_target:
                 if args.title:
-                    plt.title(title)
+                    # plt.title(title)
                     if not os.path.exists(os.path.dirname(outfile)):
                         os.makedirs(os.path.dirname(outfile))
                     plt.savefig(outfile)
                 else:
-                    plt.title(ticker)
+                    # plt.title(ticker)
                     plt.show()
 
             plt.clf()
@@ -303,7 +308,7 @@ def run(args):
 if args.optimize:
     for dif in [1,2,3,4,5,6,7,8,9,10]:
     # for dif in [12]:
-        for seg in [3,5,6,7,8,10,12]:
+        for seg in [10,15,20,25,50]:
             for num in [1]:
             # for seg in [12]:
                 if dif < seg: continue
