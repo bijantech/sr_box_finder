@@ -5,3 +5,4 @@ seaborn
 pandas_datareader
 yfinance
 mplfinance
+mplcursors

@@ -1,9 +1,11 @@
 import pandas as pd
 
 from platform import system
+from matplotlib.widgets import Cursor
 pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
 import numpy as np
+from matplotlib.dates import date2num, DayLocator, DateFormatter
 import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
@@ -18,9 +20,7 @@ from mplfinance.original_flavor import candlestick2_ohlc
 
 from argparse import ArgumentParser
 
-def createZigZagPoints(dfSeries, minSegSize):
-    minRetrace = minSegSize
-
+def createZigZagPoints(dfSeries, minRetrace):
     curVal = dfSeries[0]
     curPos = dfSeries.index[0]
     curDir = 1
@@ -96,12 +96,12 @@ parser.add_argument(
     default="2",
     type=int,
     required=False,
-    help="Min number of points in price range to draw a support/resistance line. Default: 3",
+    help="Min number of points in price range to draw a support/resistance line.  Default: 2",
 )
 parser.add_argument(
     "-m",
     "--min",
-    default="150",
+    default="10",
     type=int,
     required=False,
     help="Min number of bars from the start the support/resistance line has to be at to display chart. Default: 150",
@@ -120,10 +120,34 @@ parser.add_argument(
     help="Start Date",
 )
 parser.add_argument(
+    "--target-max",
+    type=float,
+    required=False,
+    help="Target S/R level to filter",
+)
+parser.add_argument(
+    "--target-min",
+    type=float,
+    required=False,
+    help="Target S/R level to filter",
+)
+parser.add_argument(
     "--stop-date",
     type=str,
     required=False,
     help="Stop Date",
+)
+parser.add_argument(
+    "--optimize",
+    action='store_true',
+    required=False,
+    help="Run many variables and save file (wont display)",
+)
+parser.add_argument(
+    "--hide-candles",
+    action='store_true',
+    required=False,
+    help="Dont show candlesticks",
 )
 args = parser.parse_args()
 
@@ -138,7 +162,7 @@ else:
 connected = False
 while not connected:
     try:
-        ticker_df = web.get_data_yahoo( tickers, period=args.period, interval=args.interval)
+        ticker_df = web.get_data_yahoo(tickers, period=args.period, interval=args.interval)
 
         if args.start_date:
             ticker_df = ticker_df[args.start_date:]
@@ -156,50 +180,62 @@ while not connected:
         time.sleep(5)
         pass
 
-
 def run(args):
     for ticker in tickers:
-        print("\n\n" + ticker)
+        # print("\n\n" + ticker)
         try:
             # title = f"{ticker} {args.title}"
             if args.title:
-                title = args.title
+                title = f"{ticker}/{args.title}"
                 outfile = f"out/{title}.jpg"
+                # print(outfile)
                 if path.exists(outfile):
                     print("skipping", outfile)
                     return
                 else:
-                    print("creating", outfile)
+                    print("\n\ncreating", outfile)
             x_max = 0
             fig, ax = plt.subplots(figsize=(15, 8))
+            ax.yaxis.set_label_position("right")
+            ax.yaxis.tick_right()
+            cursor = Cursor(ax, color='green', linewidth=2)
+            # ax.xaxis.set_major_locator(DayLocator())
+            # ax.xaxis.set_major_formatter(DateFormatter('%Y%m'))
             fig.tight_layout()
             if len(tickers) != 1:
                 dfRes = createZigZagPoints(ticker_df.Close[ticker], args.seg_size).dropna()
-                candlestick2_ohlc(
-                    ax,
-                    ticker_df["Open"][ticker],
-                    ticker_df["High"][ticker],
-                    ticker_df["Low"][ticker],
-                    ticker_df["Close"][ticker],
-                    width=0.5,
-                    colorup="g",
-                    colordown="r",
-                )
+                if not args.hide_candles:
+                    candlestick2_ohlc(
+                        ax,
+                        ticker_df["Open"][ticker],
+                        ticker_df["High"][ticker],
+                        ticker_df["Low"][ticker],
+                        ticker_df["Close"][ticker],
+                        width=0.5,
+                        colorup="g",
+                        colordown="r",
+                    )
             else:
                 dfRes = createZigZagPoints(ticker_df.Close, args.seg_size).dropna()
-                candlestick2_ohlc(
-                    ax,
-                    ticker_df["Open"],
-                    ticker_df["High"],
-                    ticker_df["Low"],
-                    ticker_df["Close"],
-                    width=0.5,
-                    colorup="g",
-                    colordown="r",
-                )
+                if not args.hide_candles:
+                    candlestick2_ohlc(
+                        ax,
+                        ticker_df["Open"],
+                        ticker_df["High"],
+                        ticker_df["Low"],
+                        ticker_df["Close"],
+                        width=0.5,
+                        colorup="g",
+                        colordown="r",
+                    )
 
-            # plt.plot(dfRes["Value"])
+            # print(dfRes)
+            plt.plot(dfRes["Value"])
             removed_indexes = []
+            if args.target_max:
+                has_line_near_target = False
+            else:
+                has_line_near_target = True
             for index, row in dfRes.iterrows():
                 if not (index in removed_indexes):
                     dropindexes = []
@@ -226,12 +262,14 @@ def run(args):
                                     elif index2 > endx:
                                         endx = index2
                                     counter = counter + 1
-                    if counter > args.number:
+                    if counter >= args.number:
                         sum = 0
-                        # print("Support at ", end="")
-                        # for i in range(len(values) - 1):
-                        #     print("{:0.2f} and ".format(values[i]), end="")
-                        # print("{:0.2f} \n".format(values[len(values) - 1]), end="")
+                        print("Support at ", end="")
+                        for i in range(len(values) - 1):
+                            if (args.target_max and values[i] < args.target_max and values[i] > args.target_min):
+                                has_line_near_target = True
+                            print("{:0.2f} and ".format(values[i]), end="")
+                        print("{:0.2f} \n".format(values[len(values) - 1]), end="")
                         removed_indexes.extend(dropindexes)
                         for value in values:
                             sum = sum + value
@@ -244,32 +282,39 @@ def run(args):
                             linewidth=1,
                             color="g",
                         )
-            if x_max > args.min:
+            # print("x_max", x_max, args.min)
+            if has_line_near_target:
                 if args.title:
                     plt.title(title)
+                    if not os.path.exists(os.path.dirname(outfile)):
+                        os.makedirs(os.path.dirname(outfile))
                     plt.savefig(outfile)
                 else:
                     plt.title(ticker)
+                    plt.show()
 
-                plt.show()
             plt.clf()
             plt.cla()
             plt.close()
         except Exception as e:
             print(e)
+            raise(e)
 
-run(args)
-
-# for dif in [3,4,5,6,7,8,9,10,12]:
-#     for num in [2]:
-#         for seg in [2,3,5,7,10,12]:
-#             if dif < seg: continue
-#             args.seg_size = seg
-#             args.min = minVal
-#             args.dif = dif
-#             args.number = num
-#             args.time = time
-#             # args.title = f"{args.number}-{args.dif}"
-#             args.title = f"dif-{args.dif} "
-#             args.title += f"seg-{args.seg_size} num-{args.number}"
-#             run(args)
+if args.optimize:
+    for dif in [1,2,3,4,5,6,7,8,9,10]:
+    # for dif in [12]:
+        for seg in [3,5,6,7,8,10,12]:
+            for num in [1]:
+            # for seg in [12]:
+                if dif < seg: continue
+                args.seg_size = seg
+                args.dif = dif
+                args.number = num
+                # args.time = time
+                # args.ticker = 'TSLA'
+                # args.title = f"{args.number}-{args.dif}"
+                args.title = f"dif-{args.dif} "
+                args.title += f"seg-{args.seg_size} num-{args.number}"
+                run(args)
+else:
+    run(args)

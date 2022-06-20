@@ -1,4 +1,6 @@
-zone to zone trading
+# Video Notes
+
+## 0. zone to zone trading
 
 - identifying support/resistance levels
 - a price level that's important on a higher time frame is equally if not more important on a lower timeframe
@@ -7,14 +9,51 @@ zone to zone trading
 - path of least resistence
 
 
-box1:
+## box1:
 
 2:00 - what are zones
 6:08 - boxes define the periods in time where the asset is not trending
 and helps us define the price range in which its not trending
 
 
-Box2:
+## Box2:
+00:48 - two main indicators, 9 day MA, 50 day MA
+01:09 - markets are fractals. what happens on one timeframe happens on another timeframe.
+01:39 - 9 MA is short term momentum filter
+01:52 - 50 MA is med term momemtum filter
+02:05 - If the price falls below 9MA, short term momemtum is dying down
+02:31 - only take box breakouts long if the price is above the 50 MA
+02:44 - only take box breakouts short if the price is below the 50 MA
+02:57 - we don't take breakouts when the price is against the med term momentum average
+04:16 - price within boxes are like a coiled spring. The more it consolidates the more energy it collects.
+04:09 - The bigger the box, the bigger the breakout will be. The longer the price will run because it has more energy.
+04:28 - This box (ROKU, 19 Aug '19 - 11 Aug '20) developed over months - that's a base box.
+04:43 - From these comes out the most beautiful trends that run for a long time.
+04:50 - Once the price starts trending, price ran, then the trend structure broke down - and then it had to consolidate again in a non-trending phase
+05:25 - The 50MA on the daily corresponds roughly to the 9MA on the weekly
+05:37 - 2nd type of box we usually see are 50MA (daily) boxes
+05:52 - 1st box - Base box. 2nd box - 50MA box. 3rd one - smallest  9MA boxes
+06:10 - (9MA boxes) you see them all the time
+07:03 - Three types of boxes - 50MA box, base box, 9MA box.
+Most reliable one in breakout scenario is 50MA box
+The problem with base boxes the price can go out a little bit, come back and keep chopping
+07:25 - For 50 MA box, the first 50MA box after a breakout, that's extremely reliable. The price just goes.
+
+## Box 3:
+- system objectives
+
+## Box 4:
+0:00
+- what kind of trades based on the type of box
+- how to use that knowledge in your own system
+- continue with the ROKU example, has all kinds of boxes
+- when the price has been consolidating in a huge zone for months on end, we know the first move will be explosive
+- the problem is we don't know when the move will actually begin
+- false breakouts are a major risk with the box breakouts
+
+02:00
+- j
+
 
 Aayush Questions:
 - do you need lower than 1 day timeframes to draw boxes?
@@ -26,6 +65,9 @@ S/R levels
 # code
 https://github.com/BatuhanUsluel/Algorithmic-Support-and-Resistance
 https://github.com/yongghongg/stock-screener/blob/main/stock_breakout_demo.ipynb
+
+54 - https://github.com/judopro/Stock_Support_Resistance_ML
+12 - https://github.com/Reed-Schimmel/support_resistance_finder
 
 # articles
 https://www.flowbank.com/en/research/price-action-trading-strategy-supply-demand-zones
