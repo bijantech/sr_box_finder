@@ -7,7 +7,7 @@ import yfinance as yahoo_finance
 yahoo_finance.pdr_override()
 from argparse import ArgumentParser
 from PIL import Image
-from utils import draw_chart, get_data
+from utils import draw_chart, get_data, measure_error
 
 SOURCE_LINES= {
     "UPWK": [[132,158,16], [132,158,19.95],], #--start-date=2021-11-01 --stop-date=2022-06-18
@@ -158,9 +158,9 @@ if __name__ == "__main__":
         ticker_df = get_data(args)
         errors = []
 
-        if args.optimize:
-            sample = Image.open(draw_chart(ticker_df, args, SOURCE_LINES[ticker])).convert('RGB')
+        sample = Image.open(draw_chart(ticker_df, args, SOURCE_LINES[ticker])).convert('RGB')
 
+        if args.optimize:
             for dif in difs:
                 for ret in range(9, 15):
                     for num in [2]:

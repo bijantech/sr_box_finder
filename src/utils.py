@@ -180,6 +180,7 @@ def draw_chart(ticker_df, args, lines=None):
     # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
 
     log("\n\n" + args.ticker)
+    df = prepare_df(ticker_df, args)
     fig, axs = plt.subplots(
         1,
         facecolor=(0,0,0),
@@ -194,7 +195,8 @@ def draw_chart(ticker_df, args, lines=None):
     ax.yaxis.tick_right()
     fig.tight_layout()
     fig.subplots_adjust(wspace=0, hspace=0)
-    df = prepare_df(ticker_df, args)
+    ax.set_ylim([df.Low.min()*0.95, df.High.max()*1.05])
+    ax.set_xlim([MAGIC_NUMBER,df.index.max()])
     cursor = Cursor(ax, color="gray", linewidth=1)
 
     if lines:
@@ -226,8 +228,6 @@ def draw_chart(ticker_df, args, lines=None):
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
     # plt.xticks(df.index,df.Date)
-    # ax.set_ylim([df.Low.min()*0.95, df.High.max()*1.05])
-    # ax.set_xlim([MAGIC_NUMBER,df.index.max()])
 
     # import pdbr; pdbr.set_trace()
     # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
@@ -236,13 +236,13 @@ def draw_chart(ticker_df, args, lines=None):
     # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
     # ax.set_xticks(df.index, df.Date)
 
-    # import matplotlib.ticker as ti
-    # def mydate(x,pos):
-    #     try:
-    #         return df.Date.loc[int(x)]
-    #     except :
-    #         return ''
-    # ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+    import matplotlib.ticker as ti
+    def mydate(x,pos):
+        try:
+            return df.Date.loc[int(x)]
+        except :
+            return ''
+    ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
     if args.optimize:
         # print(outfile)
