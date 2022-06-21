@@ -129,3 +129,17 @@ find the parameters that minimize the error between the images and the properly 
 
 ## image differences
 https://github.com/nicolashahn/diffimg
+
+
+================
+I have an optimization problem.
+
+I have a model w/ multiple parameters and I need to find the optimal set of parameters to minimize the error.
+
+Does a neural network make sense in this case?
+
+If so, does it make sense that the NN should have to run the program for every training step in order to generate the output and measure the error, then backprop the parameters?
+
+If I were to create the training data before hand, then finding the optimal parameters would be simply a matter of finding whichever training sample that has the lower error rate.
+I suppose it would make sense if I needed the NN to predict what the error would be for a given set of parameters, but I don't so perhaps a NN is not the right solution.
+=====================

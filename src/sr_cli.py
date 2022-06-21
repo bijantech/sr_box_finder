@@ -6,6 +6,7 @@ pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
 import numpy as np
 from matplotlib.dates import date2num, DayLocator, DateFormatter
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import seaborn as sns
 import datetime
@@ -18,6 +19,129 @@ yahoo_finance.pdr_override()
 from mplfinance.original_flavor import candlestick2_ohlc
 from argparse import ArgumentParser
 
+import imgcompare
+from imgcompare import is_equal
+import os
+from PIL import Image
+
+MAGIC_NUMBER = 50
+SOURCE_LINES= {
+    "UPWK": [[132,158,16], [132,158,19.95],], #--start-date=2021-11-01 --stop-date=2022-06-18
+    "ARKK": [[57,66,68.5], [63,70,77],
+             [81,106,71.37], [91,120,52.25],
+             [133,155,36.0],[145,151,46.02],] #--start-date=2021-11-01 --stop-date=2022-06-18
+}
+
+def measure_error(x,y):
+    return imgcompare.image_diff_percent(x, y)
+
+def log(*argv, **kwargs):
+    if args.verbose:
+        print(*argv, **kwargs)
+
+def draw_sr_lines(ax, dfRes):
+    lines = []
+    removed_indexes = []
+    x_max = 0
+    for index, row in dfRes.iterrows():
+        # if index < MAGIC_NUMBER: continue
+        if not (index in removed_indexes):
+            dropindexes = []
+            dropindexes.append(index)
+            counter = 0
+            values = []
+            values.append(row.Value)
+            startx = index
+            endx = index
+            dir = row.Dir
+            for index2, row2 in dfRes.iterrows():
+                if not (index2 in removed_indexes):
+                    if (
+                        index != index2
+                        and abs(index2 - index) < args.time
+                        and row2.Dir == dir
+                    ):
+                        if abs((row.Value / row2.Value) - 1) < (
+                            args.dif / 100
+                        ):
+                            dropindexes.append(index2)
+                            values.append(row2.Value)
+                            if index2 < startx:
+                                startx = index2
+                            elif index2 > endx:
+                                endx = index2
+                            counter = counter + 1
+            if counter + 1 >= args.number:
+                sum = 0
+                log("Support at ", end="")
+                for i in range(len(values) - 1):
+                    if (
+                        args.target_max
+                        and values[i] < args.target_max
+                        and values[i] > args.target_min
+                    ):
+                        has_line_near_target = True
+
+                    log("{:0.2f} and ".format(values[i]), end="")
+                log("{:0.2f} \n".format(values[len(values) - 1]), end="")
+                removed_indexes.extend(dropindexes)
+                for value in values: sum = sum + value
+                if endx > x_max: x_max = endx
+                lines.append([startx, endx, sum / len(values)])
+                if not args.draw_boxes:
+                    ax.hlines(
+                        y=sum / len(values),
+                        xmin=startx,
+                        xmax=endx,
+                        linewidth=1,
+                        color="w",
+                    )
+    return lines
+
+def draw_boxes(ax, lines):
+    from matplotlib.patches import Rectangle
+    counter = 0
+
+    def find_overlapping(lines, line):
+        ol = []
+        for line2 in lines:
+            if line2[0] == line[0] and line2[2] == line[2]: continue
+            if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
+        return ol
+
+    def find_min_x(lines, line):
+        ol = find_overlapping(lines, line)
+        minx = ol[0][0]
+        for line2 in ol:
+            if line2[0] < minx: minx = line2[0]
+        return minx
+
+    def find_max_x(lines, line):
+        ol = find_overlapping(lines, line)
+        maxx = ol[0][1]
+        for line2 in ol:
+            if line2[1] > maxx: maxx = line2[1]
+        return maxx
+
+    for line in lines:
+        for line2 in lines:
+            if line2[0] == line[0] and line2[2] == line[2]: continue
+            # show all lines where the startx is before this lines' stopx
+            if line[1] > line2[0] and line[0] < line2[1]:
+                min_x = find_min_x(lines, line)
+                max_x = find_max_x(lines, line)
+                min_y = min(line[2], line2[2])
+                max_y = max(line[2], line2[2])
+                # import pdbr; pdbr.set_trace()
+                if (max_y - min_y) > 2:
+                    ax.add_patch(
+                        Rectangle(
+                          (min_x, min_y), max_x-min_x, max_y-min_y,
+                          facecolor = 'white',
+                          edgecolor= 'white',
+                          fill=(not args.empty_boxes),)
+                    )
+    return ax
 
 def createZigZagPoints(dfSeries, minRetrace):
     curVal = dfSeries[0]
@@ -39,6 +163,101 @@ def createZigZagPoints(dfSeries, minRetrace):
     dfRes[["Value"]] = dfRes[["Value"]].astype(float)
     return dfRes
 
+def prepare_df(df):
+    df['Range'] = df.High - df.Low
+    df['RollingMax'] = df.High.rolling(MAGIC_NUMBER).max()
+    df['RollingMin'] = df.Low.rolling(MAGIC_NUMBER).min()
+    df['RollingRangeDivClose'] = ((df.RollingMax - df.RollingMin) / df.Close)
+    df['MinRetracement'] = df.RollingRangeDivClose * args.retracement_size
+    df['MaxDiff'] = df.RollingRangeDivClose * args.dif
+    return df
+
+def draw_chart(args, lines=None):
+    # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
+    # axs[1].plot(ticker_df.MinRetracement)
+    # axs[1].plot(ticker_df.Range)
+    # ax.plot(dfRes["Value"])
+    # axs[2].plot(ticker_df.MaxDiff[ticker])
+    # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
+
+    log("\n\n" + ticker)
+    fig, axs = plt.subplots(
+        1,
+        facecolor=(0,0,0),
+        sharex=True,
+        sharey=False,
+        figsize=(15, 8),)
+        # gridspec_kw={"height_ratios": [5, 1]},
+        # )
+    ax = axs
+    ax.set_facecolor('black')
+    ax.yaxis.set_label_position("right")
+    ax.yaxis.tick_right()
+    fig.tight_layout()
+    fig.subplots_adjust(wspace=0, hspace=0)
+    df = prepare_df(ticker_df)
+    cursor = Cursor(ax, color="gray", linewidth=1)
+
+    if lines:
+        outfile = f"data/samples/{args.ticker}.png"
+    else:
+        title = f"{ticker}/-d {args.dif} -r {args.retracement_size}"
+        outfile = f"out/{title}.png"
+        if not os.path.exists(os.path.dirname(outfile)):
+            os.makedirs(os.path.dirname(outfile))
+
+
+    dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
+    if not args.no_candles:
+        print("drawing candles")
+        candlestick2_ohlc(ax, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
+
+    if not args.no_sr_lines and not lines:
+        lines = draw_sr_lines(ax, dfRes)
+
+    log(lines)
+
+    if args.draw_boxes:
+        draw_boxes(ax, lines)
+
+    # import pdbr; pdbr.set_trace()
+    # ax.set_xticks(df.Date.astype(str))
+    positions = (
+        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
+    )
+    labels = (
+        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
+        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
+        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
+        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
+        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
+    )
+    # plt.xticks(df.index, labels=df.Date.astype(str))
+    # ax.xticks(positions, labels)
+    # ax.set_xticklabels(labels)
+    # plt.xticks(df.index,df.Date)
+    # ax.set_ylim([df.Low.min()*0.95, df.High.max()*1.05])
+    # ax.set_xlim([MAGIC_NUMBER,df.index.max()])
+
+    # import pdbr; pdbr.set_trace()
+    # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+    # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+    # plt.axis('off')
+    if args.optimize:
+        # print(outfile)
+        plt.savefig(outfile)
+    else:
+        # plt.title(ticker)
+        plt.show()
+
+    plt.clf()
+    plt.cla()
+    plt.close()
+    return outfile
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
@@ -143,7 +362,7 @@ parser.add_argument(
     help="Run many variables and save file (wont display)",
 )
 parser.add_argument(
-    "--no-candle",
+    "--no-candles",
     action="store_true",
     required=False,
     help="Dont show candlesticks",
@@ -160,6 +379,19 @@ parser.add_argument(
     required=False,
     help="Draw boxes",
 )
+parser.add_argument(
+    "--empty-boxes",
+    action="store_true",
+    required=False,
+    help="Don't fill boxes",
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    action="store_true",
+    required=False,
+    help="Verbose",
+)
 args = parser.parse_args()
 
 # S&P 500 Tickers
@@ -170,227 +402,45 @@ else:
     tickers = args.tickers.split(",")
 # fmt: on
 
-connected = False
-while not connected:
-    try:
+if __name__ == "__main__":
+    if args.no_sr_lines:
+        difs = [11]
+    else:
+        difs = range(5, 15)
+
+    for ticker in tickers:
         ticker_df = web.get_data_yahoo(
-            tickers, period=args.period, interval=args.interval
+            ticker, period=args.period, interval=args.interval
         )
         if args.start_date:
             ticker_df = ticker_df[args.start_date :]
         if args.stop_date:
             ticker_df = ticker_df[: args.stop_date]
         ticker_df = ticker_df.reset_index()
-        connected = True
-    except Exception as e:
-        print("type error: " + str(e))
-        time.sleep(5)
-        pass
 
+        errors = []
+        args.ticker = ticker
 
-def run(args):
-    for ticker in tickers:
-        print("\n\n" + ticker)
-        try:
-            if args.optimize:
-                # title = f"{ticker}/{args.title}"
-                # title = f"{ticker}/-r {args.retracement_size} -d {args.dif}"
-                title = f"{ticker}/-d {args.dif} -r {args.retracement_size}"
-                # title = f"{ticker}/-d {args.dif}"
-                outfile = f"out/{title}.jpg"
-                if path.exists(outfile):
-                    print("skipping", outfile)
-                    return
-                else:
-                    print("\n\ncreating", outfile)
+        if args.optimize:
+            sample = Image.open(draw_chart(args, SOURCE_LINES[ticker])).convert('RGB')
 
-            x_max = 0
-            # fig, ax = plt.figure(facecolor=(1, 1, 1), figsize=(15, 8),)
-            fig, axs = plt.subplots(
-                1,
-                facecolor=(0,0,0),
-                sharex=True,
-                sharey=False,
-                figsize=(15, 8),)
-                # gridspec_kw={"height_ratios": [5, 1]},
-                # )
-            ax = axs
+            for dif in difs:
+                for ret in range(9, 15):
+                    for num in [2]:
+                        # if dif < seg: continue
+                        args.retracement_size = ret
+                        args.dif = dif
+                        args.number = num
+                        outfile = draw_chart(args)
+                        if os.path.exists(outfile):
+                            new = Image.open(outfile).convert('RGB')
+                            error = measure_error(sample, new)
+                            # print("err", error)
+                            errors.append([ticker, dif, ret, num, error])
 
-            ax.set_facecolor('black')
-            ax.yaxis.set_label_position("right")
-            ax.yaxis.tick_right()
-            # axs[1].yaxis.tick_right()
-            # axs[2].yaxis.tick_right()
-            # cursor = Cursor(axs, color="gray", linewidth=1)
-            fig.tight_layout()
-            fig.subplots_adjust(wspace=0, hspace=0)
-
-            # ticker_df['AvgRng'] = ticker_df.Range.rolling(MAGIC_NUMBER).mean()
-
-            MAGIC_NUMBER = 50
-
-            # fmt: off
-            if(len(tickers)!=1):
-                ticker_df['Range', ticker] = ticker_df.High[ticker] - ticker_df.Low[ticker]
-                ticker_df['RollingMax', ticker] = ticker_df.High[ticker].rolling(MAGIC_NUMBER).max()
-                ticker_df['RollingMin', ticker] = ticker_df.Low[ticker].rolling(MAGIC_NUMBER).min()
-                ticker_df['RollingRangeDivClose', ticker] = ((ticker_df.RollingMax[ticker] - ticker_df.RollingMin[ticker]) / ticker_df.Close[ticker])
-                ticker_df['MinRetracement', ticker] = ticker_df.RollingRangeDivClose[ticker] * args.retracement_size
-                ticker_df['MaxDiff', ticker] = ticker_df.RollingRangeDivClose[ticker] * args.dif
-                # import pdbr; pdbr.set_trace()
-                dfRes = createZigZagPoints(ticker_df.Close[ticker], ticker_df.MinRetracement[ticker]).dropna()
-                candlestick2_ohlc(ax, ticker_df['Open'][ticker], ticker_df['High'][ticker], ticker_df['Low'][ticker], ticker_df['Close'][ticker], width=0.6, colorup='g', colordown='r')
-                ax.set_ylim([ticker_df.Low[ticker].min()*0.95, ticker_df.High[ticker].max()*1.05])
-                ax.set_xlim([MAGIC_NUMBER,ticker_df.index.max()])
-                # axs[1].plot(ticker_df.MinRetracement[ticker])
-            else:
-                ax.set_ylim([ticker_df.Low.min()*0.95, ticker_df.High.max()*1.05])
-                ax.set_xlim([MAGIC_NUMBER,ticker_df.index.max()])
-                ticker_df['Range'] = ticker_df.High - ticker_df.Low
-                ticker_df['RollingMax'] = ticker_df.High.rolling(MAGIC_NUMBER).max()
-                ticker_df['RollingMin'] = ticker_df.Low.rolling(MAGIC_NUMBER).min()
-                ticker_df['RollingRangeDivClose'] = ((ticker_df.RollingMax - ticker_df.RollingMin) / ticker_df.Close)
-                ticker_df['MinRetracement'] = ticker_df.RollingRangeDivClose * args.retracement_size
-                ticker_df['MaxDiff'] = ticker_df.RollingRangeDivClose * args.dif
-                dfRes = createZigZagPoints(ticker_df.Close, ticker_df.MinRetracement).dropna()
-                if not args.no_candle:
-                    candlestick2_ohlc(ax, ticker_df["Open"], ticker_df["High"], ticker_df["Low"], ticker_df["Close"], width=0.5, colorup="g", colordown="r",)
-                # axs[1].plot(ticker_df.MinRetracement)
-            # fmt: on
-
-            # print(dfRes)
-            # axs[1].plot(ticker_df.Range)
-            removed_indexes = []
-            if args.target_max:
-                has_line_near_target = False
-            else:
-                has_line_near_target = True
-
-            # draw S/R lines
-            lines = []
-            if not args.no_sr_lines:
-                for index, row in dfRes.iterrows():
-                    # if index < MAGIC_NUMBER: continue
-                    if not (index in removed_indexes):
-                        dropindexes = []
-                        dropindexes.append(index)
-                        counter = 0
-                        values = []
-                        values.append(row.Value)
-                        startx = index
-                        endx = index
-                        dir = row.Dir
-                        for index2, row2 in dfRes.iterrows():
-                            if not (index2 in removed_indexes):
-                                if (
-                                    index != index2
-                                    and abs(index2 - index) < args.time
-                                    and row2.Dir == dir
-                                ):
-                                    if abs((row.Value / row2.Value) - 1) < (
-                                        args.dif / 100
-                                    ):
-                                        dropindexes.append(index2)
-                                        values.append(row2.Value)
-                                        if index2 < startx:
-                                            startx = index2
-                                        elif index2 > endx:
-                                            endx = index2
-                                        counter = counter + 1
-                        if counter + 1 >= args.number:
-                            sum = 0
-                            print("Support at ", end="")
-                            for i in range(len(values) - 1):
-                                if (
-                                    args.target_max
-                                    and values[i] < args.target_max
-                                    and values[i] > args.target_min
-                                ):
-                                    has_line_near_target = True
-                                print("{:0.2f} and ".format(values[i]), end="")
-                            print("{:0.2f} \n".format(values[len(values) - 1]), end="")
-                            removed_indexes.extend(dropindexes)
-                            for value in values:
-                                sum = sum + value
-                            if endx > x_max:
-                                x_max = endx
-                            lines.append([startx, endx, sum / len(values)])
-                            if not args.draw_boxes:
-                                ax.hlines(
-                                    y=sum / len(values),
-                                    xmin=startx,
-                                    xmax=endx,
-                                    linewidth=1,
-                                    color="w",
-                                )
-
-            if args.draw_boxes:
-                from matplotlib.patches import Rectangle
-                counter = 0
-                for line in lines:
-                    # import pdbr; pdbr.set_trace()
-                    print(counter, line)
-                    counter2 = 0
-                    for line2 in lines:
-                        if counter == counter2:
-                            counter2 += 1
-                            continue
-                        if line2[0] == line[0] and line2[2] == line[2]: continue
-                        # show all lines where the startx is before this lines' stopx
-                        if line[1] > line2[0] and line[0] < line2[1]:
-                            print("overlapping lines", counter2)
-
-                            min_x = min(line[0], line2[0])
-                            min_y = min(line[2], line2[2])
-                            max_x = max(line[1], line[1])
-                            max_y = max(line[2], line2[2])
-                            ax.add_patch(
-                                Rectangle((min_x, min_y), max_x-min_x, max_y-min_y,
-                                          facecolor = 'white',
-                                          fill=True,)
-                            )
-                        counter2 += 1
-
-                    counter += 1
-
-            # ax.plot(dfRes["Value"])
-            # axs[2].plot(ticker_df.MaxDiff[ticker])
-            # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
-
-            if has_line_near_target:
-                plt.axis('off')
-                if args.optimize:
-                    # plt.title(title)
-                    if not os.path.exists(os.path.dirname(outfile)):
-                        os.makedirs(os.path.dirname(outfile))
-                    plt.savefig(outfile)
-                else:
-                    # plt.title(ticker)
-                    plt.show()
-
-
-
-            plt.clf()
-            plt.cla()
-            plt.close()
-        except Exception as e:
-            print(e)
-            raise (e)
-
-
-if args.no_sr_lines:
-    difs = [11]
-else:
-    difs = range(5, 15)
-
-if args.optimize:
-    for dif in difs:
-        for ret in range(9, 15):
-            for num in [2]:
-                # if dif < seg: continue
-                args.retracement_size = ret
-                args.dif = dif
-                args.number = num
-                run(args)
-else:
-    run(args)
+            df = pd.read_csv('data/samples.csv')
+            df = df.drop(df[df.symbol == ticker].index)
+            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'err'])
+            pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
+        else:
+            draw_chart(args)
