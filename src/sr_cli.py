@@ -154,6 +154,12 @@ parser.add_argument(
     required=False,
     help="Dont show s/r lines",
 )
+parser.add_argument(
+    "--draw-boxes",
+    action="store_true",
+    required=False,
+    help="Draw boxes",
+)
 args = parser.parse_args()
 
 # S&P 500 Tickers
@@ -199,21 +205,23 @@ def run(args):
                     print("\n\ncreating", outfile)
 
             x_max = 0
-
+            # fig, ax = plt.figure(facecolor=(1, 1, 1), figsize=(15, 8),)
             fig, axs = plt.subplots(
-                2,
+                1,
+                facecolor=(0,0,0),
                 sharex=True,
                 sharey=False,
-                figsize=(15, 8),
-                gridspec_kw={"height_ratios": [5, 1]},
-            )
-            ax = axs[0]
+                figsize=(15, 8),)
+                # gridspec_kw={"height_ratios": [5, 1]},
+                # )
+            ax = axs
 
+            ax.set_facecolor('black')
             ax.yaxis.set_label_position("right")
             ax.yaxis.tick_right()
-            axs[1].yaxis.tick_right()
+            # axs[1].yaxis.tick_right()
             # axs[2].yaxis.tick_right()
-            cursor = Cursor(axs[1], color="gray", linewidth=1)
+            # cursor = Cursor(axs, color="gray", linewidth=1)
             fig.tight_layout()
             fig.subplots_adjust(wspace=0, hspace=0)
 
@@ -234,7 +242,7 @@ def run(args):
                 candlestick2_ohlc(ax, ticker_df['Open'][ticker], ticker_df['High'][ticker], ticker_df['Low'][ticker], ticker_df['Close'][ticker], width=0.6, colorup='g', colordown='r')
                 ax.set_ylim([ticker_df.Low[ticker].min()*0.95, ticker_df.High[ticker].max()*1.05])
                 ax.set_xlim([MAGIC_NUMBER,ticker_df.index.max()])
-                axs[1].plot(ticker_df.MinRetracement[ticker])
+                # axs[1].plot(ticker_df.MinRetracement[ticker])
             else:
                 ax.set_ylim([ticker_df.Low.min()*0.95, ticker_df.High.max()*1.05])
                 ax.set_xlim([MAGIC_NUMBER,ticker_df.index.max()])
@@ -247,7 +255,7 @@ def run(args):
                 dfRes = createZigZagPoints(ticker_df.Close, ticker_df.MinRetracement).dropna()
                 if not args.no_candle:
                     candlestick2_ohlc(ax, ticker_df["Open"], ticker_df["High"], ticker_df["Low"], ticker_df["Close"], width=0.5, colorup="g", colordown="r",)
-                axs[1].plot(ticker_df.MinRetracement)
+                # axs[1].plot(ticker_df.MinRetracement)
             # fmt: on
 
             # print(dfRes)
@@ -259,6 +267,7 @@ def run(args):
                 has_line_near_target = True
 
             # draw S/R lines
+            lines = []
             if not args.no_sr_lines:
                 for index, row in dfRes.iterrows():
                     # if index < MAGIC_NUMBER: continue
@@ -305,19 +314,51 @@ def run(args):
                                 sum = sum + value
                             if endx > x_max:
                                 x_max = endx
-                            ax.hlines(
-                                y=sum / len(values),
-                                xmin=startx,
-                                xmax=endx,
-                                linewidth=1,
-                                color="g",
-                            )
+                            lines.append([startx, endx, sum / len(values)])
+                            if not args.draw_boxes:
+                                ax.hlines(
+                                    y=sum / len(values),
+                                    xmin=startx,
+                                    xmax=endx,
+                                    linewidth=1,
+                                    color="w",
+                                )
 
-            ax.plot(dfRes["Value"])
+            if args.draw_boxes:
+                from matplotlib.patches import Rectangle
+                counter = 0
+                for line in lines:
+                    # import pdbr; pdbr.set_trace()
+                    print(counter, line)
+                    counter2 = 0
+                    for line2 in lines:
+                        if counter == counter2:
+                            counter2 += 1
+                            continue
+                        if line2[0] == line[0] and line2[2] == line[2]: continue
+                        # show all lines where the startx is before this lines' stopx
+                        if line[1] > line2[0] and line[0] < line2[1]:
+                            print("overlapping lines", counter2)
+
+                            min_x = min(line[0], line2[0])
+                            min_y = min(line[2], line2[2])
+                            max_x = max(line[1], line[1])
+                            max_y = max(line[2], line2[2])
+                            ax.add_patch(
+                                Rectangle((min_x, min_y), max_x-min_x, max_y-min_y,
+                                          facecolor = 'white',
+                                          fill=True,)
+                            )
+                        counter2 += 1
+
+                    counter += 1
+
+            # ax.plot(dfRes["Value"])
             # axs[2].plot(ticker_df.MaxDiff[ticker])
             # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
 
             if has_line_near_target:
+                plt.axis('off')
                 if args.optimize:
                     # plt.title(title)
                     if not os.path.exists(os.path.dirname(outfile)):
@@ -326,6 +367,8 @@ def run(args):
                 else:
                     # plt.title(ticker)
                     plt.show()
+
+
 
             plt.clf()
             plt.cla()
