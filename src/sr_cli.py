@@ -206,7 +206,6 @@ def draw_chart(args, lines=None):
         if not os.path.exists(os.path.dirname(outfile)):
             os.makedirs(os.path.dirname(outfile))
 
-
     dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
     if not args.no_candles:
         print("drawing candles")
@@ -220,24 +219,7 @@ def draw_chart(args, lines=None):
     if args.draw_boxes:
         draw_boxes(ax, lines)
 
-    # import pdbr; pdbr.set_trace()
-    # ax.set_xticks(df.Date.astype(str))
-    positions = (
-        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-        1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3,
-    )
-    labels = (
-        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
-        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
-        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
-        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
-        "A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B", "C",
-    )
     # plt.xticks(df.index, labels=df.Date.astype(str))
-    # ax.xticks(positions, labels)
     # ax.set_xticklabels(labels)
     # plt.xticks(df.index,df.Date)
     # ax.set_ylim([df.Low.min()*0.95, df.High.max()*1.05])
@@ -247,6 +229,17 @@ def draw_chart(args, lines=None):
     # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
     # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
     # plt.axis('off')
+    # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
+    # ax.set_xticks(df.index, df.Date)
+
+    import matplotlib.ticker as ti
+    def mydate(x,pos):
+        try:
+            return df.Date.loc[int(x)]
+        except :
+            return ''
+    ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+
     if args.optimize:
         # print(outfile)
         plt.savefig(outfile)
