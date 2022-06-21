@@ -217,6 +217,7 @@ def draw_chart(args, lines=None):
     log(lines)
 
     if args.draw_boxes:
+        print(lines)
         draw_boxes(ax, lines)
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
@@ -232,13 +233,13 @@ def draw_chart(args, lines=None):
     # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
     # ax.set_xticks(df.index, df.Date)
 
-    import matplotlib.ticker as ti
-    def mydate(x,pos):
-        try:
-            return df.Date.loc[int(x)]
-        except :
-            return ''
-    ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+    # import matplotlib.ticker as ti
+    # def mydate(x,pos):
+    #     try:
+    #         return df.Date.loc[int(x)]
+    #     except :
+    #         return ''
+    # ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
     if args.optimize:
         # print(outfile)
@@ -429,11 +430,11 @@ if __name__ == "__main__":
                             new = Image.open(outfile).convert('RGB')
                             error = measure_error(sample, new)
                             # print("err", error)
-                            errors.append([ticker, dif, ret, num, error])
+                            errors.append([ticker, dif, ret, num, outfile, error])
 
             df = pd.read_csv('data/samples.csv')
             df = df.drop(df[df.symbol == ticker].index)
-            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'err'])
+            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
             draw_chart(args)
