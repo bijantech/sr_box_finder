@@ -24,7 +24,33 @@ from imgcompare import is_equal
 import os
 from PIL import Image
 
+# fmt: off
+ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD", "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN", "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP", "ABC", "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS", "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG", "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR", "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB", "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR", "BF-B", "CHRW", "COG", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL", "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CTL", "CERN", "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF", "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO", "CTSH", "CL", "CMCSA", "CMA", "CAG", "CXO", "COP", "ED", "STZ", "COO", "CPRT", "GLW", "CTVA", "COST", "COTY", "CCI", "CSX", "CMI", "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN", "DXCM", "FANG", "DLR", "DFS", "DISCA", "DISCK", "DISH", "DG", "DLTR", "D", "DPZ", "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC", "ETFC", "EMN", "ETN", "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX", "EQIX", "EQR", "ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE", "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT", "FDX", "FIS", "FITB", "FE", "FRC", "FISV", "FLT", "FLIR", "FLS", "FMC", "F", "FTNT", "FTV", "FBHS", "FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT", "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW", "HRB", "HAL", "HBI", "HIG", "HAS", "HCA", "PEAK", "HSIC", "HSY", "HES", "HPE", "HLT", "HFC", "HOLX", "HD", "HON", "HRL", "HST", "HWM", "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "INFO", "ITW", "ILMN", "INCY", "IR", "INTC", "ICE", "IBM", "IP", "IPG", "IFF", "INTU", "ISRG", "IVZ", "IPGP", "IQV", "IRM", "JKHY", "J", "JBHT", "SJM", "JNJ", "JCI", "JPM", "JNPR", "KSU", "K", "KEY", "KEYS", "KMB", "KIM", "KMI", "KLAC", "KSS", "KHC", "KR", "LB", "LHX", "LH", "LRCX", "LW", "LVS", "LEG", "LDOS", "LEN", "LLY", "LNC", "LIN", "LYV", "LKQ", "LMT", "L", "LOW", "LYB", "MTB", "MRO", "MPC", "MKTX", "MAR", "MMC", "MLM", "MAS", "MA", "MKC", "MXIM", "MCD", "MCK", "MDT", "MRK", "MET", "MTD", "MGM", "MCHP", "MU", "MSFT", "MAA", "MHK", "TAP", "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "MYL", "NDAQ", "NOV", "NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN", "NKE", "NI", "NBL", "NSC", "NTRS", "NOC", "NLOK", "NCLH", "NRG", "NUE", "NVDA", "NVR", "ORLY", "OXY", "ODFL", "OMC", "OKE", "ORCL", "OTIS", "PCAR", "PKG", "PH", "PAYX", "PAYC", "PYPL", "PNR", "PBCT", "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC", "PPG", "PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA", "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL", "RJF", "RTX", "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL", "ROP", "ROST", "RCL", "SPGI", "CRM", "SBAC", "SLB", "STX", "SEE", "SRE", "NOW", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SWK", "SBUX", "STT", "STE", "SYK", "SIVB", "SYF", "SNPS", "SYY", "TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TDY", "TFX", "TXN", "TXT", "TMO", "TIF", "TJX", "TSCO", "TT", "TDG", "TRV", "TFC", "TWTR", "TYL", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UHS", "UNM", "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAC", "V", "VNO", "VMC", "WRB", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WFC", "WELL", "WST", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX", "XYL", "YUM", "ZBRA", "ZBH", "ZION", "ZTS"]
+# fmt: on
 MAGIC_NUMBER = 50
+SOURCE_LINES= {
+    "UPWK": [
+        ["2022-05-11",158,16],
+        [132,158,19.95],
+    ], #--start-date=2021-11-01 --stop-date=2022-06-18
+    "ROKU": [
+        ["2022-02-18", "2022-03-15", 103],
+        ["2022-02-25", "2022-03-29", 138.75],
+        ["2022-05-11", "2022-06-15", 77.0],
+        ["2022-05-13", "2022-06-08", 100.0],
+    ],
+    "SHOP": [
+        ["2022-05-11", "2022-06-17", 305 ],
+        ["2022-05-13", "2022-06-08", 400 ],
+    ],
+    "ARKK": [
+        [57,66,68.5],
+        [63,70,77],
+        [81,106,71.37],
+        [91,120,52.25],
+        [133,155,36.0],
+        [145,151,46.02],] #--start-date=2021-11-01 --stop-date=2022-06-18
+}
 
 def get_data(args):
     ticker_df = web.get_data_yahoo(
@@ -40,8 +66,8 @@ def measure_error(x,y):
     return imgcompare.image_diff_percent(x, y)
 
 def log(*argv, **kwargs):
-    # if args.verbose:
-    print(*argv, **kwargs)
+    if os.environ['SRCLI_VERBOSE']:
+        print(*argv, **kwargs)
 
 def generate_lines(args, ax, dfRes):
     lines = []
@@ -121,7 +147,6 @@ def draw_boxes(args, ax, lines):
                 max_x = find_max_x(lines, line)
                 min_y = min(line[2], line2[2])
                 max_y = max(line[2], line2[2])
-                # import pdbr; pdbr.set_trace()
                 if (max_y - min_y) > 2:
                     ax.add_patch(
                         Rectangle(
@@ -171,11 +196,11 @@ def draw_lines(ax, lines):
             color="w",
         )
 
-def draw_chart(ticker_df, args, lines=None):
+def draw_chart(ticker_df, args, sample=False):
     # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
     # axs[1].plot(ticker_df.MinRetracement)
     # axs[1].plot(ticker_df.Range)
-    # ax.plot(dfRes["Value"])
+
     # axs[2].plot(ticker_df.MaxDiff[ticker])
     # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
 
@@ -195,12 +220,16 @@ def draw_chart(ticker_df, args, lines=None):
     ax.yaxis.tick_right()
     fig.tight_layout()
     fig.subplots_adjust(wspace=0, hspace=0)
-    ax.set_ylim([df.Low.min()*0.95, df.High.max()*1.05])
+    ax.set_ylim(
+        [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
+         df[df.index > MAGIC_NUMBER].High.max()*1.05])
     ax.set_xlim([MAGIC_NUMBER,df.index.max()])
     cursor = Cursor(ax, color="gray", linewidth=1)
 
-    if lines:
+    lines = None
+    if sample:
         outfile = f"data/samples/{args.ticker}.png"
+        lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     else:
         title = f"{args.ticker}/-d {args.dif} -r {args.retracement_size}"
         outfile = f"out/{title}.png"
@@ -208,16 +237,14 @@ def draw_chart(ticker_df, args, lines=None):
             os.makedirs(os.path.dirname(outfile))
 
     dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
+    if args.show_zags: ax.plot(dfRes["Value"])
     if not args.no_candles:
-        print("drawing candles")
         candlestick2_ohlc(ax, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
 
     if not args.no_sr_lines and not lines:
         lines = generate_lines(args, ax, dfRes)
 
-    # draw lines
-    draw_lines(ax, lines)
-    # if not args.draw_boxes:
+    if not args.draw_boxes: draw_lines(ax, lines)
 
     log(lines)
 
@@ -255,3 +282,13 @@ def draw_chart(ticker_df, args, lines=None):
     plt.cla()
     plt.close()
     return outfile
+
+def convert_datex(ticker_df, datelines):
+    newlines = []
+    for line in datelines:
+        newlines.append([
+            ticker_df[ticker_df.Date.astype(str) == line[0]].Date.index[0],
+            ticker_df[ticker_df.Date.astype(str) == line[1]].Date.index[0],
+            line[2]
+        ])
+    return newlines

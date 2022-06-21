@@ -3,23 +3,14 @@ pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
 import os.path
 import os
-import yfinance as yahoo_finance
-yahoo_finance.pdr_override()
 from argparse import ArgumentParser
 from PIL import Image
-from utils import draw_chart, get_data, measure_error
-
-SOURCE_LINES= {
-    "UPWK": [[132,158,16], [132,158,19.95],], #--start-date=2021-11-01 --stop-date=2022-06-18
-    "ARKK": [[57,66,68.5], [63,70,77],
-             [81,106,71.37], [91,120,52.25],
-             [133,155,36.0],[145,151,46.02],] #--start-date=2021-11-01 --stop-date=2022-06-18
-}
+from utils import draw_chart, get_data, measure_error, ALL_TICKERS
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
     "-t",
-    "--tickers",
+    "--ticker",
     default="ROKU",
     type=str,
     required=False,
@@ -137,47 +128,60 @@ parser.add_argument(
     required=False,
     help="Verbose",
 )
-args = parser.parse_args()
+parser.add_argument(
+    "--sample-only",
+    action="store_true",
+    required=False,
+    help="Draw sample only",
+)
+parser.add_argument(
+    "--show-zags",
+    action="store_true",
+    required=False,
+    help="Show zig zags",
+)
 
-# S&P 500 Tickers
-# fmt: off
-if args.tickers == "SPY500":
-    tickers = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD", "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN", "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP", "ABC", "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS", "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG", "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR", "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB", "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR", "BF-B", "CHRW", "COG", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL", "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CTL", "CERN", "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF", "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO", "CTSH", "CL", "CMCSA", "CMA", "CAG", "CXO", "COP", "ED", "STZ", "COO", "CPRT", "GLW", "CTVA", "COST", "COTY", "CCI", "CSX", "CMI", "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN", "DXCM", "FANG", "DLR", "DFS", "DISCA", "DISCK", "DISH", "DG", "DLTR", "D", "DPZ", "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC", "ETFC", "EMN", "ETN", "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX", "EQIX", "EQR", "ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE", "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT", "FDX", "FIS", "FITB", "FE", "FRC", "FISV", "FLT", "FLIR", "FLS", "FMC", "F", "FTNT", "FTV", "FBHS", "FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT", "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW", "HRB", "HAL", "HBI", "HIG", "HAS", "HCA", "PEAK", "HSIC", "HSY", "HES", "HPE", "HLT", "HFC", "HOLX", "HD", "HON", "HRL", "HST", "HWM", "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "INFO", "ITW", "ILMN", "INCY", "IR", "INTC", "ICE", "IBM", "IP", "IPG", "IFF", "INTU", "ISRG", "IVZ", "IPGP", "IQV", "IRM", "JKHY", "J", "JBHT", "SJM", "JNJ", "JCI", "JPM", "JNPR", "KSU", "K", "KEY", "KEYS", "KMB", "KIM", "KMI", "KLAC", "KSS", "KHC", "KR", "LB", "LHX", "LH", "LRCX", "LW", "LVS", "LEG", "LDOS", "LEN", "LLY", "LNC", "LIN", "LYV", "LKQ", "LMT", "L", "LOW", "LYB", "MTB", "MRO", "MPC", "MKTX", "MAR", "MMC", "MLM", "MAS", "MA", "MKC", "MXIM", "MCD", "MCK", "MDT", "MRK", "MET", "MTD", "MGM", "MCHP", "MU", "MSFT", "MAA", "MHK", "TAP", "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "MYL", "NDAQ", "NOV", "NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN", "NKE", "NI", "NBL", "NSC", "NTRS", "NOC", "NLOK", "NCLH", "NRG", "NUE", "NVDA", "NVR", "ORLY", "OXY", "ODFL", "OMC", "OKE", "ORCL", "OTIS", "PCAR", "PKG", "PH", "PAYX", "PAYC", "PYPL", "PNR", "PBCT", "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC", "PPG", "PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA", "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL", "RJF", "RTX", "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL", "ROP", "ROST", "RCL", "SPGI", "CRM", "SBAC", "SLB", "STX", "SEE", "SRE", "NOW", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SWK", "SBUX", "STT", "STE", "SYK", "SIVB", "SYF", "SNPS", "SYY", "TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TDY", "TFX", "TXN", "TXT", "TMO", "TIF", "TJX", "TSCO", "TT", "TDG", "TRV", "TFC", "TWTR", "TYL", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UHS", "UNM", "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAC", "V", "VNO", "VMC", "WRB", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WFC", "WELL", "WST", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX", "XYL", "YUM", "ZBRA", "ZBH", "ZION", "ZTS"]
-else:
-    tickers = args.tickers.split(",")
-# fmt: on
+def run(args):
+    if args.verbose:
+        os.environ['SRCLI_VERBOSE'] = "1"
+    else:
+        os.environ['SRCLI_VERBOSE'] = ""
 
-if __name__ == "__main__":
+    # print(args)
     if args.no_sr_lines:
         difs = [11]
     else:
-        difs = range(5, 15)
+        difs = range(1, 30)
 
-    for ticker in tickers:
-        args.ticker = ticker
-        ticker_df = get_data(args)
-        errors = []
+    ticker_df = get_data(args)
+    errors = []
 
-        sample = Image.open(draw_chart(ticker_df, args, SOURCE_LINES[ticker])).convert('RGB')
+    sample = draw_chart(ticker_df, args, True)
+    if args.sample_only: return
 
-        if args.optimize:
-            for dif in difs:
-                for ret in range(9, 15):
-                    for num in [2]:
-                        # if dif < seg: continue
-                        args.retracement_size = ret
-                        args.dif = dif
-                        args.number = num
-                        outfile = draw_chart(ticker_df, args)
-                        if os.path.exists(outfile):
-                            new = Image.open(outfile).convert('RGB')
-                            error = measure_error(sample, new)
-                            # print("err", error)
-                            errors.append([ticker, dif, ret, num, outfile, error])
+    if args.optimize:
+        sampleimg = Image.open(sample).convert('RGB')
+        for dif in difs:
+            for ret in range(5, 25):
+                for num in [2]:
+                    # if dif < seg: continue
+                    args.retracement_size = ret
+                    args.dif = dif
+                    args.number = num
+                    outfile = draw_chart(ticker_df, args)
+                    if os.path.exists(outfile):
+                        new = Image.open(outfile).convert('RGB')
+                        error = measure_error(sampleimg, new)
+                        # print("err", error)
+                        errors.append([args.ticker, dif, ret, num, outfile, error])
 
-            df = pd.read_csv('data/samples.csv')
-            df = df.drop(df[df.symbol == ticker].index)
-            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
-            pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
-        else:
-            draw_chart(ticker_df, args)
+        df = pd.read_csv('data/samples.csv')
+        df = df.drop(df[df.symbol == args.ticker].index)
+        df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
+        pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
+    else:
+        draw_chart(ticker_df, args)
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    run(args)
