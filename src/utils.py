@@ -25,7 +25,61 @@ import os
 from PIL import Image
 
 # fmt: off
-ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD", "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE", "ALXN", "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN", "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP", "ABC", "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS", "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG", "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR", "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB", "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR", "BF-B", "CHRW", "COG", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL", "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CTL", "CERN", "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF", "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO", "CTSH", "CL", "CMCSA", "CMA", "CAG", "CXO", "COP", "ED", "STZ", "COO", "CPRT", "GLW", "CTVA", "COST", "COTY", "CCI", "CSX", "CMI", "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN", "DXCM", "FANG", "DLR", "DFS", "DISCA", "DISCK", "DISH", "DG", "DLTR", "D", "DPZ", "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC", "ETFC", "EMN", "ETN", "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX", "EQIX", "EQR", "ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE", "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT", "FDX", "FIS", "FITB", "FE", "FRC", "FISV", "FLT", "FLIR", "FLS", "FMC", "F", "FTNT", "FTV", "FBHS", "FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT", "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW", "HRB", "HAL", "HBI", "HIG", "HAS", "HCA", "PEAK", "HSIC", "HSY", "HES", "HPE", "HLT", "HFC", "HOLX", "HD", "HON", "HRL", "HST", "HWM", "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "INFO", "ITW", "ILMN", "INCY", "IR", "INTC", "ICE", "IBM", "IP", "IPG", "IFF", "INTU", "ISRG", "IVZ", "IPGP", "IQV", "IRM", "JKHY", "J", "JBHT", "SJM", "JNJ", "JCI", "JPM", "JNPR", "KSU", "K", "KEY", "KEYS", "KMB", "KIM", "KMI", "KLAC", "KSS", "KHC", "KR", "LB", "LHX", "LH", "LRCX", "LW", "LVS", "LEG", "LDOS", "LEN", "LLY", "LNC", "LIN", "LYV", "LKQ", "LMT", "L", "LOW", "LYB", "MTB", "MRO", "MPC", "MKTX", "MAR", "MMC", "MLM", "MAS", "MA", "MKC", "MXIM", "MCD", "MCK", "MDT", "MRK", "MET", "MTD", "MGM", "MCHP", "MU", "MSFT", "MAA", "MHK", "TAP", "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "MYL", "NDAQ", "NOV", "NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN", "NKE", "NI", "NBL", "NSC", "NTRS", "NOC", "NLOK", "NCLH", "NRG", "NUE", "NVDA", "NVR", "ORLY", "OXY", "ODFL", "OMC", "OKE", "ORCL", "OTIS", "PCAR", "PKG", "PH", "PAYX", "PAYC", "PYPL", "PNR", "PBCT", "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC", "PPG", "PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA", "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL", "RJF", "RTX", "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL", "ROP", "ROST", "RCL", "SPGI", "CRM", "SBAC", "SLB", "STX", "SEE", "SRE", "NOW", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV", "SWK", "SBUX", "STT", "STE", "SYK", "SIVB", "SYF", "SNPS", "SYY", "TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TDY", "TFX", "TXN", "TXT", "TMO", "TIF", "TJX", "TSCO", "TT", "TDG", "TRV", "TFC", "TWTR", "TYL", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP", "UAL", "UNH", "UPS", "URI", "UHS", "UNM", "VFC", "VLO", "VAR", "VTR", "VRSN", "VRSK", "VZ", "VRTX", "VIAC", "V", "VNO", "VMC", "WRB", "WAB", "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WFC", "WELL", "WST", "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WLTW", "WYNN", "XEL", "XRX", "XLNX", "XYL", "YUM", "ZBRA", "ZBH", "ZION", "ZTS"]
+ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
+               "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE",
+               "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN",
+               "AMCR", "AEE", "AAL", "AEP", "AXP", "AIG", "AMT", "AWK", "AMP",
+               "ABC", "AME", "AMGN", "APH", "ADI", "ANSS", "ANTM", "AON", "AOS",
+               "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG",
+               "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR",
+               "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB",
+               "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR",
+               "BF-B", "CHRW", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL",
+               "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CERN",
+               "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF",
+               "CTAS", "CSCO", "C", "CFG", "CTXS", "CLX", "CME", "CMS", "KO",
+               "CTSH", "CL", "CMCSA", "CMA", "CAG", "COP", "ED", "STZ", "COO",
+               "CPRT", "GLW", "CTVA", "COST", "COTY", "CCI", "CSX", "CMI",
+               "CVS", "DHI", "DHR", "DRI", "DVA", "DE", "DAL", "XRAY", "DVN",
+               "DXCM", "FANG", "DLR", "DFS", "DISH", "DG", "DLTR", "D", "DPZ",
+               "DOV", "DOW", "DTE", "DUK", "DRE", "DD", "DXC", "EMN", "ETN",
+               "EBAY", "ECL", "EIX", "EW", "EA", "EMR", "ETR", "EOG", "EFX",
+               "EQIX", "EQR", "ESS", "EL", "EVRG", "ES", "RE", "EXC", "EXPE",
+               "EXPD", "EXR", "XOM", "FFIV", "FB", "FAST", "FRT", "FDX", "FIS",
+               "FITB", "FE", "FRC", "FISV", "FLT", "FLS", "FMC", "F", "FTNT",
+               "FTV", "FBHS", "FOXA", "FOX", "BEN", "FCX", "GPS", "GRMN", "IT",
+               "GD", "GE", "GIS", "GM", "GPC", "GILD", "GL", "GPN", "GS", "GWW",
+               "HRB", "HAL", "HBI", "HIG", "HAS", "HCA", "PEAK", "HSIC", "HSY",
+               "HES", "HPE", "HLT", "HOLX", "HD", "HON", "HRL", "HST", "HWM",
+               "HPQ", "HUM", "HBAN", "HII", "IEX", "IDXX", "ITW", "ILMN",
+               "INCY", "IR", "INTC", "ICE", "IBM", "IP", "IPG", "IFF", "INTU",
+               "ISRG", "IVZ", "IPGP", "IQV", "IRM", "JKHY", "J", "JBHT", "SJM",
+               "JNJ", "JCI", "JPM", "JNPR", "K", "KEY", "KEYS", "KMB", "KIM",
+               "KMI", "KLAC", "KSS", "KHC", "KR", "LHX", "LH", "LRCX", "LW",
+               "LVS", "LEG", "LDOS", "LEN", "LLY", "LNC", "LIN", "LYV", "LKQ",
+               "LMT", "L", "LOW", "LYB", "MTB", "MRO", "MPC", "MKTX", "MAR",
+               "MMC", "MLM", "MAS", "MA", "MKC", "MCD", "MCK", "MDT", "MRK",
+               "MET", "MTD", "MGM", "MCHP", "MU", "MSFT", "MAA", "MHK", "TAP",
+               "MDLZ", "MNST", "MCO", "MS", "MOS", "MSI", "MSCI", "NDAQ", "NOV",
+               "NTAP", "NFLX", "NWL", "NEM", "NWSA", "NWS", "NEE", "NLSN",
+               "NKE", "NI", "NSC", "NTRS", "NOC", "NLOK", "NCLH", "NRG", "NUE",
+               "NVDA", "NVR", "ORLY", "OXY", "ODFL", "OMC", "OKE", "ORCL",
+               "OTIS", "PCAR", "PKG", "PH", "PAYX", "PAYC", "PYPL", "PNR",
+               "PEP", "PKI", "PRGO", "PFE", "PM", "PSX", "PNW", "PXD", "PNC",
+               "PPG", "PPL", "PFG", "PG", "PGR", "PLD", "PRU", "PEG", "PSA",
+               "PHM", "PVH", "QRVO", "PWR", "QCOM", "DGX", "RL", "RJF", "RTX",
+               "O", "REG", "REGN", "RF", "RSG", "RMD", "RHI", "ROK", "ROL",
+               "ROP", "ROST", "RCL", "SPGI", "CRM", "SBAC", "SLB", "STX", "SEE",
+               "SRE", "NOW", "SHW", "SPG", "SWKS", "SLG", "SNA", "SO", "LUV",
+               "SWK", "SBUX", "STT", "STE", "SYK", "SIVB", "SYF", "SNPS", "SYY",
+               "TMUS", "TROW", "TTWO", "TPR", "TGT", "TEL", "FTI", "TDY", "TFX",
+               "TXN", "TXT", "TMO", "TJX", "TSCO", "TT", "TDG", "TRV", "TFC",
+               "TWTR", "TYL", "TSN", "UDR", "ULTA", "USB", "UAA", "UA", "UNP",
+               "UAL", "UNH", "UPS", "URI", "UHS", "UNM", "VFC", "VLO", "VTR",
+               "VRSN", "VRSK", "VZ", "VRTX", "V", "VNO", "VMC", "WRB", "WAB",
+               "WMT", "WBA", "DIS", "WM", "WAT", "WEC", "WFC", "WELL", "WST",
+               "WDC", "WU", "WRK", "WY", "WHR", "WMB", "WYNN", "XEL", "XRX",
+               "XYL", "YUM", "ZBRA", "ZBH", "ZION", "ZTS",]
 # fmt: on
 MAGIC_NUMBER = 50
 SOURCE_LINES= {
@@ -187,12 +241,21 @@ def createZigZagPoints(dfSeries, minRetrace):
     return dfRes
 
 def prepare_df(df, args):
-    df['Range'] = df.High - df.Low
-    df['RollingMax'] = df.High.rolling(MAGIC_NUMBER).max()
-    df['RollingMin'] = df.Low.rolling(MAGIC_NUMBER).min()
-    df['RollingRangeDivClose'] = ((df.RollingMax - df.RollingMin) / df.Close)
-    df['MinRetracement'] = df.RollingRangeDivClose * args.retracement_size
-    df['MaxDiff'] = df.RollingRangeDivClose * args.dif
+    if(len(args.tickers)!=1):
+        t = args.ticker
+        df['Range', t] = df.High[t] - df.Low[t]
+        df['RollingMax', t] = df.High[t].rolling(MAGIC_NUMBER).max()
+        df['RollingMin', t] = df.Low[t].rolling(MAGIC_NUMBER).min()
+        df['RollingRangeDivClose', t] = ((df.RollingMax[t] - df.RollingMin[t]) / df.Close[t])
+        df['MinRetracement', t] = df.RollingRangeDivClose[t] * args.retracement_size
+        df['MaxDiff', t] = df.RollingRangeDivClose[t] * args.dif
+    else:
+        df['Range'] = df.High - df.Low
+        df['RollingMax'] = df.High.rolling(MAGIC_NUMBER).max()
+        df['RollingMin'] = df.Low.rolling(MAGIC_NUMBER).min()
+        df['RollingRangeDivClose'] = ((df.RollingMax - df.RollingMin) / df.Close)
+        df['MinRetracement'] = df.RollingRangeDivClose * args.retracement_size
+        df['MaxDiff'] = df.RollingRangeDivClose * args.dif
     return df
 
 def draw_lines(ax, lines):
@@ -231,9 +294,21 @@ def draw_chart(ticker_df, args, sample=False):
     ax.yaxis.tick_right()
     fig.tight_layout()
     fig.subplots_adjust(wspace=0, hspace=0)
-    ax.set_ylim(
-        [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
-         df[df.index > MAGIC_NUMBER].High.max()*1.05])
+
+    if(len(args.tickers)!=1):
+        ax.set_ylim(
+            [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
+             df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
+        dfRes = createZigZagPoints(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
+        if not args.no_candles:
+            candlestick2_ohlc(ax, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
+    else:
+        ax.set_ylim(
+            [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
+             df[df.index > MAGIC_NUMBER].High.max()*1.05])
+        dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
+        if not args.no_candles:
+            candlestick2_ohlc(ax, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
     ax.set_xlim([MAGIC_NUMBER,df.index.max()])
     cursor = Cursor(ax, color="gray", linewidth=1)
 
@@ -247,10 +322,7 @@ def draw_chart(ticker_df, args, sample=False):
         if not os.path.exists(os.path.dirname(outfile)):
             os.makedirs(os.path.dirname(outfile))
 
-    dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
     if args.show_zags: ax.plot(dfRes["Value"])
-    if not args.no_candles:
-        candlestick2_ohlc(ax, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
 
     if not args.no_sr_lines and not lines:
         lines = generate_lines(args, ax, dfRes)
@@ -287,8 +359,8 @@ def draw_chart(ticker_df, args, sample=False):
         plt.savefig(outfile)
     else:
         # plt.title(ticker)
-        if args.is_in_box:
-            print("Is In Box?", True)
+        if args.filter:
+            print(f"{args.ticker}", True)
             # return True
         plt.show()
 

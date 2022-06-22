@@ -10,15 +10,6 @@ from tqdm.auto import tqdm
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
-    "-t",
-    "--ticker",
-    default="ROKU",
-    type=str,
-    required=False,
-    # help="Used to look up a specific tickers. Commma seperated. Example: MSFT,AAPL,AMZN default: List of S&P 500 companies",
-    help="Used to look up a specific tickers.",
-)
-parser.add_argument(
     "--tickers",
     default="ROKU",
     type=str,
@@ -155,6 +146,12 @@ parser.add_argument(
     required=False,
     help="Show zig zags",
 )
+parser.add_argument(
+    "--filter",
+    action="store_true",
+    required=False,
+    help="Run Filter",
+)
 
 def run(args):
     ticker_df = get_data(args)
@@ -165,6 +162,7 @@ def run(args):
         os.environ['SRCLI_VERBOSE'] = ""
 
     for ticker in args.tickers:
+        args.ticker = ticker
         # print(args)
         if args.no_sr_lines:
             difs = [11]
@@ -192,12 +190,12 @@ def run(args):
                             new = Image.open(outfile).convert('RGB')
                             error = measure_error(sampleimg, new)
                             # print("err", error)
-                            errors.append([args.ticker, dif, ret, num, outfile, error])
+                            errors.append([ticker, dif, ret, num, outfile, error])
                             pbar.update(1)
                             counter += 1
 
             df = pd.read_csv('data/samples.csv')
-            df = df.drop(df[df.symbol == args.ticker].index)
+            df = df.drop(df[df.symbol == ticker].index)
             df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
@@ -210,5 +208,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # for ticker in ALL_TICKERS:
     #     args.ticker = ticker
-    args.tickers = args.tickers.split(",")
+
+    if (args.tickers=="SPY500"):
+        args.tickers = ALL_TICKERS
+    else:
+        args.tickers = args.tickers.split(",")
+    # args.tickers = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
+    #                 "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB",
+    #                 "ARE", "ALGN", "ALLE", "LNT", "ALL", "GOOGL"]
+
+    # args.tickers = ["GOOGL"]
     run(args)
