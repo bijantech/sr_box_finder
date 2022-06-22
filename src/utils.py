@@ -63,7 +63,7 @@ SOURCE_LINES= {
 
 def get_data(args):
     ticker_df = web.get_data_yahoo(
-        args.ticker, period=args.period, interval=args.interval
+        args.tickers, period=args.period, interval=args.interval
     )
     if args.start_date:
         ticker_df = ticker_df[args.start_date :]
@@ -220,9 +220,11 @@ def draw_chart(ticker_df, args, sample=False):
         facecolor=(0,0,0),
         sharex=True,
         sharey=False,
-        figsize=(15, 8),)
+        figsize=(15, 8),
+        num=args.ticker,)
         # gridspec_kw={"height_ratios": [5, 1]},
         # )
+    axs.set_title("HELOOOO")
     ax = axs
     ax.set_facecolor('black')
     ax.yaxis.set_label_position("right")
@@ -285,6 +287,9 @@ def draw_chart(ticker_df, args, sample=False):
         plt.savefig(outfile)
     else:
         # plt.title(ticker)
+        if args.is_in_box:
+            print("Is In Box?", True)
+            # return True
         plt.show()
 
     plt.clf()

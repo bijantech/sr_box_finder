@@ -19,6 +19,14 @@ parser.add_argument(
     help="Used to look up a specific tickers.",
 )
 parser.add_argument(
+    "--tickers",
+    default="ROKU",
+    type=str,
+    required=False,
+    # help="Used to look up a specific tickers. Commma seperated. Example: MSFT,AAPL,AMZN default: List of S&P 500 companies",
+    help="Used to look up a specific tickers.",
+)
+parser.add_argument(
     "-p",
     "--period",
     default="5y",
@@ -149,51 +157,58 @@ parser.add_argument(
 )
 
 def run(args):
+    ticker_df = get_data(args)
+
     if args.verbose:
         os.environ['SRCLI_VERBOSE'] = "1"
     else:
         os.environ['SRCLI_VERBOSE'] = ""
 
-    # print(args)
-    if args.no_sr_lines:
-        difs = [11]
-    else:
-        difs = range(1, 30)
-    rets = range(5, 25)
-    ticker_df = get_data(args)
-    errors = []
+    for ticker in args.tickers:
+        # print(args)
+        if args.no_sr_lines:
+            difs = [11]
+        else:
+            difs = range(1, 30)
 
-    sample = draw_chart(ticker_df, args, True)
-    if args.sample_only: return
+        rets = range(5, 25)
+        errors = []
 
-    if args.optimize:
-        sampleimg = Image.open(sample).convert('RGB')
-        total_count = len(difs) * len(rets)
-        pbar = tqdm(total = total_count)
-        counter = 0
-        for dif in difs:
-            for ret in rets:
-                for num in [2]:
-                    # if dif < seg: continue
-                    args.retracement_size = ret
-                    args.dif = dif
-                    args.number = num
-                    outfile = draw_chart(ticker_df, args)
-                    if os.path.exists(outfile):
-                        new = Image.open(outfile).convert('RGB')
-                        error = measure_error(sampleimg, new)
-                        # print("err", error)
-                        errors.append([args.ticker, dif, ret, num, outfile, error])
-                        pbar.update(1)
-                        counter += 1
+        if args.optimize:
+            sample = draw_chart(ticker_df, args, True)
+            sampleimg = Image.open(sample).convert('RGB')
+            total_count = len(difs) * len(rets)
+            pbar = tqdm(total = total_count)
+            counter = 0
+            for dif in difs:
+                for ret in rets:
+                    for num in [2]:
+                        # if dif < seg: continue
+                        args.retracement_size = ret
+                        args.dif = dif
+                        args.number = num
+                        outfile = draw_chart(ticker_df, args)
+                        if os.path.exists(outfile):
+                            new = Image.open(outfile).convert('RGB')
+                            error = measure_error(sampleimg, new)
+                            # print("err", error)
+                            errors.append([args.ticker, dif, ret, num, outfile, error])
+                            pbar.update(1)
+                            counter += 1
 
-        df = pd.read_csv('data/samples.csv')
-        df = df.drop(df[df.symbol == args.ticker].index)
-        df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
-        pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
-    else:
-        draw_chart(ticker_df, args)
+            df = pd.read_csv('data/samples.csv')
+            df = df.drop(df[df.symbol == args.ticker].index)
+            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
+            pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
+        else:
+            # sample = draw_chart(ticker_df, args, True)
+            # if args.sample_only:
+            #     return
+            draw_chart(ticker_df, args)
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    # for ticker in ALL_TICKERS:
+    #     args.ticker = ticker
+    args.tickers = args.tickers.split(",")
     run(args)
