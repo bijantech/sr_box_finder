@@ -14,17 +14,33 @@ import time
 import os.path
 from os import path
 import yfinance as yahoo_finance
-
 yahoo_finance.pdr_override()
+from pandas_datareader.yahoo.headers import DEFAULT_HEADERS
+import requests_cache
 from mplfinance.original_flavor import candlestick2_ohlc
 from argparse import ArgumentParser
-
 import imgcompare
 from imgcompare import is_equal
 import os
 from PIL import Image
 
+expire_after = datetime.timedelta(days=3)
+session = requests_cache.CachedSession('yfinance.cache')
+    # cache_name='cache', backend='sqlite', expire_after=expire_after)
+session.headers = DEFAULT_HEADERS
+
 # fmt: off
+AAYUSH_TICKERS = [
+    "AAPL",
+    "ARKK",
+    "GOOGL",
+    "PDD",
+    "QQQ",
+    "ROKU",
+    "SPY",
+    "TSLA",
+    "ZM",
+]
 ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
                "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB", "ARE",
                "ALGN", "ALLE", "LNT", "ALL", "GOOGL", "GOOG", "MO", "AMZN",
@@ -33,7 +49,7 @@ ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
                "APA", "AIV", "AAPL", "AMAT", "APTV", "ADM", "ANET", "AJG",
                "AIZ", "T", "ATO", "ADSK", "ADP", "AZO", "AVB", "AVY", "BKR",
                "BLL", "BAC", "BK", "BAX", "BDX", "BRK-B", "BBY", "BIO", "BIIB",
-               "BLK", "BA", "BKNG", "BWA", "BXP", "BSX", "BMY", "AVGO", "BR",
+               "BLK", "BA", "BKNG", "BWA", "BXP", "BMY", "AVGO", "BR",
                "BF-B", "CHRW", "CDNS", "CPB", "COF", "CAH", "KMX", "CCL",
                "CARR", "CAT", "CBOE", "CBRE", "CDW", "CE", "CNC", "CNP", "CERN",
                "CF", "SCHW", "CHTR", "CVX", "CMG", "CB", "CHD", "CI", "CINF",
@@ -84,7 +100,7 @@ ALL_TICKERS = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
 MAGIC_NUMBER = 50
 SOURCE_LINES= {
     "UPWK": [
-        ["2022-05-09","2022-06-21",19.5],
+        ["2022-05-09","2022-06-16",19.5],
         ["2022-05-11","2022-05-24",16],
     ],
     "ROKU": [
@@ -111,13 +127,13 @@ SOURCE_LINES= {
     ],
     "ZM": [
         ['2022-03-14', '2022-05-13', 94.81],
-        ['2022-03-22', '2022-06-21', 119.7],
+        ['2022-03-22', '2022-06-16', 119.7],
     ],
 }
 
 def get_data(args):
     ticker_df = web.get_data_yahoo(
-        args.tickers, period=args.period, interval=args.interval
+        args.tickers, period=args.period, interval=args.interval, session=session
     )
     if args.start_date:
         ticker_df = ticker_df[args.start_date :]
@@ -176,9 +192,10 @@ def generate_lines(args, ax, dfRes):
                 lines.append([startx, endx, sum / len(values)])
     return lines
 
-def draw_boxes(args, ax, lines):
+def draw_boxes(args, ax, lines, ticker_df):
     from matplotlib.patches import Rectangle
     counter = 0
+    max_box_x = 0
 
     def find_overlapping(lines, line):
         ol = []
@@ -211,6 +228,11 @@ def draw_boxes(args, ax, lines):
                 min_y = min(line[2], line2[2])
                 max_y = max(line[2], line2[2])
                 if (max_y - min_y) > 2:
+                    if max_x > max_box_x:
+                        max_box_x = max_x
+                        last_box_max_y = max_y
+                        last_box_min_y = min_y
+
                     ax.add_patch(
                         Rectangle(
                           (min_x, min_y), max_x-min_x, max_y-min_y,
@@ -218,7 +240,22 @@ def draw_boxes(args, ax, lines):
                           edgecolor= 'white',
                           fill=(not args.empty_boxes),)
                     )
-    return ax
+
+    if max_box_x:
+        if(len(args.tickers)!=1):
+            mbd = ticker_df.loc[max_box_x].Date[0]
+            md = ticker_df.loc[ticker_df.index.max()].Date[0]
+            current_price = ticker_df.loc[ticker_df.index.max()].Close[args.ticker]
+        else:
+            mbd = ticker_df.loc[max_box_x].Date
+            md = ticker_df.loc[ticker_df.index.max()].Date
+            current_price = ticker_df.loc[ticker_df.index.max()].Close
+
+        diff = (md - mbd).days
+        is_in_last_box_range = (current_price > last_box_min_y) and (current_price < last_box_max_y)
+        return (is_in_last_box_range) and diff <= 10
+    else:
+        return False
 
 def createZigZagPoints(dfSeries, minRetrace):
     curVal = dfSeries[0]
@@ -268,6 +305,22 @@ def draw_lines(ax, lines):
             color="w",
         )
 
+def convert_datex(ticker_df, datelines):
+    newlines = []
+    try:
+        for line in datelines:
+            newlines.append([
+                ticker_df[ticker_df.Date.astype(str) == line[0]].Date.index[0],
+                ticker_df[ticker_df.Date.astype(str) == line[1]].Date.index[0],
+                line[2]
+            ])
+    except Exception as e:
+        print(e)
+        import pdbr; pdbr.set_trace()
+        pass
+
+    return newlines
+
 def draw_chart(ticker_df, args, sample=False):
     # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
     # axs[1].plot(ticker_df.MinRetracement)
@@ -287,7 +340,7 @@ def draw_chart(ticker_df, args, sample=False):
         num=args.ticker,)
         # gridspec_kw={"height_ratios": [5, 1]},
         # )
-    axs.set_title("HELOOOO")
+    axs.set_title(args.ticker)
     ax = axs
     ax.set_facecolor('black')
     ax.yaxis.set_label_position("right")
@@ -319,8 +372,15 @@ def draw_chart(ticker_df, args, sample=False):
     else:
         title = f"{args.ticker}/-d {args.dif} -r {args.retracement_size}"
         outfile = f"out/{title}.png"
-        if not os.path.exists(os.path.dirname(outfile)):
-            os.makedirs(os.path.dirname(outfile))
+        if args.filter:
+            dt = datetime.datetime.now().strftime("%y%m%d%H%M")
+            outdir = f"out/filtered{dt}/match"
+            outdirno = f"out/filtered{dt}/nomatch"
+            if not os.path.exists(outdir): os.makedirs(outdir)
+            if not os.path.exists(outdirno): os.makedirs(outdirno)
+        else:
+            if not os.path.exists(os.path.dirname(outfile)):
+                os.makedirs(os.path.dirname(outfile))
 
     if args.show_zags: ax.plot(dfRes["Value"])
 
@@ -331,15 +391,15 @@ def draw_chart(ticker_df, args, sample=False):
 
     log(lines)
 
+    is_in_box = False
     if lines and args.draw_boxes:
         # print(lines)
-        draw_boxes(args, ax, lines)
+        is_in_box = draw_boxes(args, ax, lines, ticker_df)
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
     # plt.xticks(df.index,df.Date)
 
-    # import pdbr; pdbr.set_trace()
     # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
     # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
     # plt.axis('off')
@@ -360,21 +420,17 @@ def draw_chart(ticker_df, args, sample=False):
     else:
         # plt.title(ticker)
         if args.filter:
-            print(f"{args.ticker}", True)
-            # return True
-        plt.show()
+            if is_in_box:
+                print(args.ticker)
+                outfile = os.path.join(outdir, f"{args.ticker}.png")
+            else:
+                outfile = os.path.join(outdirno, f"{args.ticker}.png")
+
+            plt.savefig(outfile)
+        else:
+            plt.show()
 
     plt.clf()
     plt.cla()
     plt.close()
     return outfile
-
-def convert_datex(ticker_df, datelines):
-    newlines = []
-    for line in datelines:
-        newlines.append([
-            ticker_df[ticker_df.Date.astype(str) == line[0]].Date.index[0],
-            ticker_df[ticker_df.Date.astype(str) == line[1]].Date.index[0],
-            line[2]
-        ])
-    return newlines

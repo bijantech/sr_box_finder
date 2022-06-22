@@ -5,7 +5,7 @@ import os.path
 import os
 from argparse import ArgumentParser
 from PIL import Image
-from utils import draw_chart, get_data, measure_error, ALL_TICKERS
+from utils import draw_chart, get_data, measure_error, ALL_TICKERS, AAYUSH_TICKERS
 from tqdm.auto import tqdm
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
@@ -162,6 +162,7 @@ def run(args):
         os.environ['SRCLI_VERBOSE'] = ""
 
     for ticker in args.tickers:
+        print("\n"+ticker)
         args.ticker = ticker
         # print(args)
         if args.no_sr_lines:
@@ -170,6 +171,8 @@ def run(args):
             difs = range(1, 30)
 
         rets = range(5, 25)
+        rets = [5]
+
         errors = []
 
         if args.optimize:
@@ -191,9 +194,11 @@ def run(args):
                             error = measure_error(sampleimg, new)
                             # print("err", error)
                             errors.append([ticker, dif, ret, num, outfile, error])
-                            pbar.update(1)
-                            counter += 1
+                        # print("dif", dif, "ret", ret)
+                        pbar.update(1)
+                        counter += 1
 
+            pbar.close()
             df = pd.read_csv('data/samples.csv')
             df = df.drop(df[df.symbol == ticker].index)
             df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
@@ -211,6 +216,8 @@ if __name__ == "__main__":
 
     if (args.tickers=="SPY500"):
         args.tickers = ALL_TICKERS
+    if (args.tickers=="AAYUSH"):
+        args.tickers = AAYUSH_TICKERS
     else:
         args.tickers = args.tickers.split(",")
     # args.tickers = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
