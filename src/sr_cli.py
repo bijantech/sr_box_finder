@@ -141,6 +141,12 @@ parser.add_argument(
     required=False,
     help="Show zig zags",
 )
+parser.add_argument(
+    "--is-in-box",
+    action="store_true",
+    required=False,
+    help="Show zig zags",
+)
 
 def run(args):
     if args.verbose:
