@@ -152,6 +152,12 @@ parser.add_argument(
     required=False,
     help="Run Filter",
 )
+parser.add_argument(
+    "--side-by-side",
+    action="store_true",
+    required=False,
+    help="Show sample on right",
+)
 
 def run(args):
     if (args.tickers=="SPY500"):

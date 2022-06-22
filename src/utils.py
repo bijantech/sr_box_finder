@@ -324,15 +324,27 @@ def convert_datex(ticker_df, datelines):
 def draw_chart(ticker_df, args, sample=False):
     log("\n\n" + args.ticker)
     df = prepare_df(ticker_df, args)
-    fig, axs = plt.subplots(
-        1, 2,
-        facecolor=(0,0,0),
-        sharex=True,
-        sharey=False,
-        figsize=(15, 8),
-        num=args.ticker,)
-        # gridspec_kw={"height_ratios": [5, 1]},
-        # )
+
+    if args.side_by_side:
+        fig, axs = plt.subplots(
+            1, 2,
+            facecolor=(0,0,0),
+            sharex=True,
+            sharey=False,
+            figsize=(15, 8),
+            num=args.ticker,)
+            # gridspec_kw={"height_ratios": [5, 1]},
+            # )
+    else:
+        fig, axs = plt.subplots(
+            1, #2,
+            facecolor=(0,0,0),
+            sharex=True,
+            sharey=False,
+            figsize=(15, 8),
+            num=args.ticker,)
+            # gridspec_kw={"height_ratios": [5, 1]},
+            # )
 
     try:
         iter(axs)
@@ -392,21 +404,21 @@ def draw_chart(ticker_df, args, sample=False):
     if not args.no_sr_lines and not lines:
         for a in axs:
             lines = generate_lines(args, a, dfRes)
-
     sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     if not args.draw_boxes:
         draw_lines(axs[0], lines)
-        # if len(axs) > 1:
-        #     draw_lines(axs[1], sample_lines)
+        if len(axs) > 1:
+            draw_lines( axs[1], sample_lines)
 
     log(lines)
 
     is_in_box = False
     if lines and args.draw_boxes:
         # print(lines)
-        is_in_box = draw_boxes(args, a, lines, ticker_df)
+        is_in_box = draw_boxes(args, axs[0], lines, ticker_df)
         if len(axs) > 1:
             draw_boxes(args, axs[1], sample_lines, ticker_df)
+
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
