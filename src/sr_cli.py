@@ -6,6 +6,7 @@ import os
 from argparse import ArgumentParser
 from PIL import Image
 from utils import draw_chart, get_data, measure_error, ALL_TICKERS
+from tqdm.auto import tqdm
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
@@ -152,7 +153,7 @@ def run(args):
         difs = [11]
     else:
         difs = range(1, 30)
-
+    rets = range(5, 25)
     ticker_df = get_data(args)
     errors = []
 
@@ -161,8 +162,11 @@ def run(args):
 
     if args.optimize:
         sampleimg = Image.open(sample).convert('RGB')
+        total_count = len(difs) * len(rets)
+        pbar = tqdm(total = total_count)
+        counter = 0
         for dif in difs:
-            for ret in range(5, 25):
+            for ret in rets:
                 for num in [2]:
                     # if dif < seg: continue
                     args.retracement_size = ret
@@ -174,6 +178,8 @@ def run(args):
                         error = measure_error(sampleimg, new)
                         # print("err", error)
                         errors.append([args.ticker, dif, ret, num, outfile, error])
+                        pbar.update(1)
+                        counter += 1
 
         df = pd.read_csv('data/samples.csv')
         df = df.drop(df[df.symbol == args.ticker].index)
