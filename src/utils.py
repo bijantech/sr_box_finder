@@ -322,17 +322,10 @@ def convert_datex(ticker_df, datelines):
     return newlines
 
 def draw_chart(ticker_df, args, sample=False):
-    # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
-    # axs[1].plot(ticker_df.MinRetracement)
-    # axs[1].plot(ticker_df.Range)
-
-    # axs[2].plot(ticker_df.MaxDiff[ticker])
-    # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
-
     log("\n\n" + args.ticker)
     df = prepare_df(ticker_df, args)
     fig, axs = plt.subplots(
-        1,
+        1, 2,
         facecolor=(0,0,0),
         sharex=True,
         sharey=False,
@@ -340,30 +333,41 @@ def draw_chart(ticker_df, args, sample=False):
         num=args.ticker,)
         # gridspec_kw={"height_ratios": [5, 1]},
         # )
-    axs.set_title(args.ticker)
-    ax = axs
-    ax.set_facecolor('black')
-    ax.yaxis.set_label_position("right")
-    ax.yaxis.tick_right()
+
+    try:
+        iter(axs)
+    except:
+        axs = [axs]
+
+    for a in axs:
+        a.set_title(args.ticker)
+        a.set_facecolor('black')
+        a.yaxis.set_label_position("right")
+        a.yaxis.tick_right()
+
     fig.tight_layout()
     fig.subplots_adjust(wspace=0, hspace=0)
 
     if(len(args.tickers)!=1):
-        ax.set_ylim(
-            [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
-             df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
+        for a in axs:
+            a.set_ylim(
+                [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
+                 df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
+            if not args.no_candles:
+                candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
         dfRes = createZigZagPoints(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
-        if not args.no_candles:
-            candlestick2_ohlc(ax, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
     else:
-        ax.set_ylim(
-            [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
-             df[df.index > MAGIC_NUMBER].High.max()*1.05])
+        for a in axs:
+            a.set_ylim(
+                [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
+                 df[df.index > MAGIC_NUMBER].High.max()*1.05])
+            if not args.no_candles:
+                candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
         dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
-        if not args.no_candles:
-            candlestick2_ohlc(ax, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
-    ax.set_xlim([MAGIC_NUMBER,df.index.max()])
-    cursor = Cursor(ax, color="gray", linewidth=1)
+
+    for a in axs:
+        a.set_xlim([MAGIC_NUMBER,df.index.max()])
+        cursor = Cursor(a, color="gray", linewidth=1)
 
     lines = None
     if sample:
@@ -382,29 +386,27 @@ def draw_chart(ticker_df, args, sample=False):
             if not os.path.exists(os.path.dirname(outfile)):
                 os.makedirs(os.path.dirname(outfile))
 
-    if args.show_zags: ax.plot(dfRes["Value"])
-
+    if args.show_zags:
+        for a in axs:
+            a.plot(dfRes["Value"])
     if not args.no_sr_lines and not lines:
-        lines = generate_lines(args, ax, dfRes)
+        for a in axs:
+            lines = generate_lines(args, a, dfRes)
 
-    if not args.draw_boxes: draw_lines(ax, lines)
+    sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
+    if not args.draw_boxes:
+        draw_lines(axs[0], lines)
+        # if len(axs) > 1:
+        #     draw_lines(axs[1], sample_lines)
 
     log(lines)
 
     is_in_box = False
     if lines and args.draw_boxes:
         # print(lines)
-        is_in_box = draw_boxes(args, ax, lines, ticker_df)
-
-    # plt.xticks(df.index, labels=df.Date.astype(str))
-    # ax.set_xticklabels(labels)
-    # plt.xticks(df.index,df.Date)
-
-    # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
-    # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
-    # plt.axis('off')
-    # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
-    # ax.set_xticks(df.index, df.Date)
+        is_in_box = draw_boxes(args, a, lines, ticker_df)
+        if len(axs) > 1:
+            draw_boxes(args, axs[1], sample_lines, ticker_df)
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
@@ -412,7 +414,9 @@ def draw_chart(ticker_df, args, sample=False):
             return df.Date.loc[int(x)]
         except :
             return ''
-    ax.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+
+    for a in axs:
+        a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
     if args.optimize:
         # print(outfile)
@@ -425,7 +429,6 @@ def draw_chart(ticker_df, args, sample=False):
                 outfile = os.path.join(outdir, f"{args.ticker}.png")
             else:
                 outfile = os.path.join(outdirno, f"{args.ticker}.png")
-
             plt.savefig(outfile)
         else:
             plt.show()
@@ -434,3 +437,19 @@ def draw_chart(ticker_df, args, sample=False):
     plt.cla()
     plt.close()
     return outfile
+
+    # plt.xticks(df.index, labels=df.Date.astype(str))
+    # ax.set_xticklabels(labels)
+    # plt.xticks(df.index,df.Date)
+
+    # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+    # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
+    # plt.axis('off')
+    # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
+    # ax.set_xticks(df.index, df.Date)
+    # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
+    # axs[1].plot(ticker_df.MinRetracement)
+    # axs[1].plot(ticker_df.Range)
+
+    # axs[2].plot(ticker_df.MaxDiff[ticker])
+    # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)

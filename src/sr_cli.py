@@ -154,6 +154,13 @@ parser.add_argument(
 )
 
 def run(args):
+    if (args.tickers=="SPY500"):
+        args.tickers = ALL_TICKERS
+    elif (args.tickers=="AAYUSH"):
+        args.tickers = AAYUSH_TICKERS
+    else:
+        args.tickers = args.tickers.split(",")
+    print(args.tickers)
     ticker_df = get_data(args)
 
     if args.verbose:
@@ -214,15 +221,4 @@ if __name__ == "__main__":
     # for ticker in ALL_TICKERS:
     #     args.ticker = ticker
 
-    if (args.tickers=="SPY500"):
-        args.tickers = ALL_TICKERS
-    if (args.tickers=="AAYUSH"):
-        args.tickers = AAYUSH_TICKERS
-    else:
-        args.tickers = args.tickers.split(",")
-    # args.tickers = ["MMM", "ABT", "ABBV", "ABMD", "ACN", "ATVI", "ADBE", "AMD",
-    #                 "AAP", "AES", "AFL", "A", "APD", "AKAM", "ALK", "ALB",
-    #                 "ARE", "ALGN", "ALLE", "LNT", "ALL", "GOOGL"]
-
-    # args.tickers = ["GOOGL"]
     run(args)
