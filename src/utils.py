@@ -1,6 +1,7 @@
 import pandas as pd
 from platform import system
 from matplotlib.widgets import Cursor
+import random
 
 pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
@@ -23,6 +24,7 @@ import imgcompare
 from imgcompare import is_equal
 import os
 from PIL import Image
+from matplotlib.patches import Rectangle
 
 expire_after = datetime.timedelta(days=3)
 session = requests_cache.CachedSession('yfinance.cache')
@@ -189,76 +191,18 @@ def generate_lines(args, ax, dfRes):
                 lines.append([startx, endx, sum / len(values)])
     return lines
 
-def draw_boxes(args, ax, lines, ticker_df):
-    from matplotlib.patches import Rectangle
+def draw_boxes(ax, boxes):
+    colors_ = lambda n: list(map(lambda i: "#" + "%06x" % random.randint(0, 0xFFFFFF),range(n)))
+    colors = colors_(len(boxes))
     counter = 0
-    max_box_x = 0
-    boxes = []
-
-    def find_overlapping(lines, line):
-        ol = []
-        for line2 in lines:
-            if line2[0] == line[0] and line2[2] == line[2]: continue
-            if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
-        return ol
-
-    def find_min_x(lines, line):
-        ol = find_overlapping(lines, line)
-        minx = ol[0][0]
-        for line2 in ol:
-            if line2[0] < minx: minx = line2[0]
-        return minx
-
-    def find_max_x(lines, line):
-        ol = find_overlapping(lines, line)
-        maxx = ol[0][1]
-        for line2 in ol:
-            if line2[1] > maxx: maxx = line2[1]
-        return maxx
-
-    for line in lines:
-        for line2 in lines:
-            if line2[0] == line[0] and line2[2] == line[2]: continue
-            # show all lines where the startx is before this lines' stopx
-            if line[1] > line2[0] and line[0] < line2[1]:
-                min_x = find_min_x(lines, line)
-                max_x = find_max_x(lines, line)
-                min_y = min(line[2], line2[2])
-                max_y = max(line[2], line2[2])
-                if (max_y - min_y) > 2:
-                    if max_x > max_box_x:
-                        max_box_x = max_x
-                        last_box_max_y = max_y
-                        last_box_min_y = min_y
-
-                    boxes.append([min_x, min_y, max_x-min_x, max_y-min_y])
-                    ax.add_patch(
-                        Rectangle(
-                          (min_x, min_y), max_x-min_x, max_y-min_y,
-                          facecolor = 'white',
-                          edgecolor= 'white',
-                          fill=(not args.empty_boxes),)
-                    )
-
-    is_in_box = False
-
-    if max_box_x:
-        if(len(args.tickers)!=1):
-            mbd = ticker_df.loc[max_box_x].Date[0]
-            md = ticker_df.loc[ticker_df.index.max()].Date[0]
-            current_price = ticker_df.loc[ticker_df.index.max()].Close[args.ticker]
-        else:
-            mbd = ticker_df.loc[max_box_x].Date
-            md = ticker_df.loc[ticker_df.index.max()].Date
-            current_price = ticker_df.loc[ticker_df.index.max()].Close
-
-        diff = (md - mbd).days
-        is_in_last_box_range = (current_price > last_box_min_y) and (current_price < last_box_max_y)
-        is_in_box = (is_in_last_box_range) and diff <= 10
-    else:
-        is_in_box = False
-
-    return [is_in_box, boxes]
+    for box in boxes:
+        ax.add_patch(
+            Rectangle(
+              (box.x, box.y), box.width, box.height,
+              facecolor = "white",
+              edgecolor = "white",)
+        )
+        counter += 1
 
 def createZigZagPoints(dfSeries, minRetrace):
     curVal = dfSeries[0]
@@ -307,7 +251,6 @@ def draw_lines(ax, lines):
             linewidth=1,
             color="w",
         )
-
 
 def draw_chart(ticker_df, args, sample=False):
     log("\n\n" + args.ticker)
@@ -408,13 +351,17 @@ def draw_chart(ticker_df, args, sample=False):
             print("experiment")
         # print(lines)
         boxes = convert_lines_to_boxes(lines)
-        [is_in_box, boxes] = draw_boxes(args, axs[0], lines, ticker_df)
-        print(boxes)
+        draw_boxes(axs[0], boxes)
+        print("boxes:", len(boxes))
+        print(len(boxes))
+        for b in boxes: print(b)
         # import pdbr; pdbr.set_trace()
         if len(axs) > 1:
             print("sample")
-            [_, boxes] = draw_boxes(args, axs[1], sample_lines, ticker_df)
-            print(boxes)
+            boxes = convert_lines_to_boxes(sample_lines)
+            draw_boxes(axs[1], boxes)
+            print("boxes:", len(boxes))
+            for b in boxes: print(b)
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
@@ -426,7 +373,7 @@ def draw_chart(ticker_df, args, sample=False):
     for a in axs:
         a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
-    get_error2(ticker_df, SOURCE_LINES[args.ticker])
+    # get_error2(ticker_df, SOURCE_LINES[args.ticker])
 
     if args.optimize:
         plt.savefig(outfile)
@@ -466,15 +413,138 @@ def draw_chart(ticker_df, args, sample=False):
 
 def get_error2(ticker_df, lines, ticker):
     source = convert_datex(ticker_df, lines)
-    import pdbr; pdbr.set_trace()
+    # import pdbr; pdbr.set_trace()
     pass
 
 def measure_error(x,y):
     return imgcompare.image_diff_percent(x, y)
 
+class Box():
+    x: float
+    y: float
+    width: float
+    height: float
+
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+    def __repr__(self):
+        return f"({self.x}, {self.y}), {self.width}, {self.height}"
+
+    # def find_overlapping(lines, line):
+    #     ol = []
+    #     for line2 in lines:
+    #         if line2[0] == line[0] and line2[2] == line[2]: continue
+    #         if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
+    #     return ol
+    #
+    # def find_min_x(lines, line):
+    #     ol = find_overlapping(lines, line)
+    #     minx = ol[0][0]
+    #     for line2 in ol:
+    #         if line2[0] < minx: minx = line2[0]
+    #     return minx
+
+    def does_contain(box1, box2):
+        # does x overlap?
+        min_x = min(box1.x, box2.x)
+        # find the lowest y value
+
+    def x_values_overlap(box1, box2):
+        if box1.x == box2.x:
+            return True
+        if (box1.x < box2.x) and ((box1.x + box1.width) > box2.x):
+            return True
+        if (box2.x < box1.x) and ((box2.x + box2.width) > box1.x):
+            return True
+        return False
+
+    def consolidate(boxes):
+        cboxes = []
+        for box in boxes:
+            # if none add it
+            if len(cboxes) == 0:
+                cboxes.append(box)
+
+            # look for any that can be extended
+            extended = False
+            for box2 in cboxes:
+                if box.y == box2.y and Box.x_values_overlap(box, box2):
+                    extended = True
+                    box2.height = max(box.height, box2.height)
+                    box2.width = max(box.width, box2.width)
+
+            if not extended:
+                cboxes.append(box)
+
+        return cboxes
+
 def convert_lines_to_boxes(lines):
-    import pdbr; pdbr.set_trace()
-    pass
+    counter = 0
+    max_box_x = 0
+    boxes = []
+    def find_overlapping(lines, line):
+        ol = []
+        for line2 in lines:
+            if line2[0] == line[0] and line2[2] == line[2]: continue
+            if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
+        return ol
+
+    def find_min_x(lines, line):
+        ol = find_overlapping(lines, line)
+        minx = ol[0][0]
+        for line2 in ol:
+            if line2[0] < minx: minx = line2[0]
+        return minx
+
+    def find_max_x(lines, line):
+        ol = find_overlapping(lines, line)
+        maxx = ol[0][1]
+        for line2 in ol:
+            if line2[1] > maxx: maxx = line2[1]
+        return maxx
+
+    for line in lines:
+        for line2 in lines:
+            if line2[0] == line[0] and line2[2] == line[2]: continue
+            # show all lines where the startx is before this lines' stopx
+            if line[1] > line2[0] and line[0] < line2[1]:
+                min_x = find_min_x(lines, line)
+                max_x = find_max_x(lines, line)
+                min_y = min(line[2], line2[2])
+                max_y = max(line[2], line2[2])
+                if (max_y - min_y) > 2:
+                    if max_x > max_box_x:
+                        max_box_x = max_x
+                        last_box_max_y = max_y
+                        last_box_min_y = min_y
+
+                    boxes.append(Box(x=min_x, y=min_y, width=max_x-min_x, height=max_y-min_y))
+
+    # return boxes
+    return Box.consolidate(boxes)
+    # is_in_box = False
+    #
+    # if max_box_x:
+    #     if(len(args.tickers)!=1):
+    #         mbd = ticker_df.loc[max_box_x].Date[0]
+    #         md = ticker_df.loc[ticker_df.index.max()].Date[0]
+    #         current_price = ticker_df.loc[ticker_df.index.max()].Close[args.ticker]
+    #     else:
+    #         mbd = ticker_df.loc[max_box_x].Date
+    #         md = ticker_df.loc[ticker_df.index.max()].Date
+    #         current_price = ticker_df.loc[ticker_df.index.max()].Close
+    #
+    #     diff = (md - mbd).days
+    #     is_in_last_box_range = (current_price > last_box_min_y) and (current_price < last_box_max_y)
+    #     is_in_box = (is_in_last_box_range) and diff <= 10
+    # else:
+    #     is_in_box = False
+    #
+    # return [is_in_box, boxes]
 
 def convert_datex(ticker_df, datelines):
     newlines = []
