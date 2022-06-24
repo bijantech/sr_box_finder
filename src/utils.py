@@ -348,20 +348,20 @@ def draw_chart(ticker_df, args, sample=False):
     is_in_box = False
     if lines and args.draw_boxes:
         if not args.sample_only:
-            print("experiment")
-        # print(lines)
+            log("experiment")
+        # log(lines)
         boxes = convert_lines_to_boxes(lines)
         draw_boxes(axs[0], boxes)
-        print("boxes:", len(boxes))
-        print(len(boxes))
-        for b in boxes: print(b)
+        log("boxes:", len(boxes))
+        log(len(boxes))
+        for b in boxes: log(b)
         # import pdbr; pdbr.set_trace()
         if len(axs) > 1:
-            print("sample")
+            log("sample")
             boxes = convert_lines_to_boxes(sample_lines)
             draw_boxes(axs[1], boxes)
-            print("boxes:", len(boxes))
-            for b in boxes: print(b)
+            log("boxes:", len(boxes))
+            for b in boxes: log(b)
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
