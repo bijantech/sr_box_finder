@@ -26,6 +26,7 @@ import os
 from PIL import Image
 from matplotlib.patches import Rectangle
 from mathutil import overlap
+import matplotlib.ticker as ti
 
 expire_after = datetime.timedelta(days=3)
 session = requests_cache.CachedSession('yfinance.cache')
@@ -200,8 +201,8 @@ def draw_boxes(ax, boxes):
         ax.add_patch(
             Rectangle(
               (box.x, box.y), box.width, box.height,
-              facecolor = "white",
-              edgecolor = "white",)
+              facecolor = colors[counter],
+              edgecolor = colors[counter],)
         )
         counter += 1
 
@@ -346,6 +347,8 @@ def draw_chart(ticker_df, args, sample=False):
     log(lines)
 
     is_in_box = False
+    sample_boxes = convert_lines_to_boxes(sample_lines)
+    boxes = []
     if lines and args.draw_boxes:
         if not args.sample_only:
             log("experiment")
@@ -355,14 +358,12 @@ def draw_chart(ticker_df, args, sample=False):
         log("boxes:", len(boxes))
         log(len(boxes))
         for b in boxes: log(b)
-        sample_boxes = convert_lines_to_boxes(sample_lines)
         if len(axs) > 1:
             log("sample")
             draw_boxes(axs[1], sample_boxes)
             log("boxes:", len(sample_boxes))
             for b in boxes: log(b)
 
-    import matplotlib.ticker as ti
     def mydate(x,pos):
         try:
             return df.Date.loc[int(x)]
@@ -371,9 +372,6 @@ def draw_chart(ticker_df, args, sample=False):
 
     for a in axs:
         a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
-
-    # get any boxes that are greater than the x
-    # print("% covered of last (x) sample box", max_overlap/area)
 
     if args.optimize:
         plt.savefig(outfile)
@@ -392,7 +390,8 @@ def draw_chart(ticker_df, args, sample=False):
     plt.clf()
     plt.cla()
     plt.close()
-    return [outfile, get_error2(boxes, sample_boxes)]
+
+    return [outfile, get_error2(sample_boxes, boxes)]
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
