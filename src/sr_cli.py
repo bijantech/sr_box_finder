@@ -37,7 +37,7 @@ parser.add_argument(
 parser.add_argument(
     "-d",
     "--dif",
-    default="10",
+    default="7",
     type=float,
     required=False,
     help="Max %% difference between two points to group them together. Default: 10",
@@ -45,7 +45,7 @@ parser.add_argument(
 parser.add_argument(
     "-r",
     "--retracement-size",
-    default="10",
+    default="5",
     type=float,
     required=False,
     help="Segment Size Minimum %",
@@ -105,10 +105,10 @@ parser.add_argument(
     help="Run many variables and save file (wont display)",
 )
 parser.add_argument(
-    "--no-candles",
+    "--show-candles",
     action="store_true",
     required=False,
-    help="Dont show candlesticks",
+    help="Show candlesticks",
 )
 parser.add_argument(
     "--no-sr-lines",
@@ -117,7 +117,7 @@ parser.add_argument(
     help="Dont show s/r lines",
 )
 parser.add_argument(
-    "--draw-boxes",
+    "--no-boxes",
     action="store_true",
     required=False,
     help="Draw boxes",
@@ -205,9 +205,10 @@ def run(args):
         args.ticker = ticker
         errors = []
 
+        [sample, covered] = draw_chart(ticker_df, args, True)
+        sampleimg = Image.open(sample).convert('RGB')
+
         if args.optimize:
-            [sample, covered] = draw_chart(ticker_df, args, True)
-            sampleimg = Image.open(sample).convert('RGB')
             total_count = len(args.diffs) * len(args.rets)
             pbar = tqdm(total = total_count)
             counter = 0
@@ -236,14 +237,22 @@ def run(args):
                                                 'outfile', 'err', 'covered'])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
-            if not args.side_by_side :
-                draw_chart(ticker_df, args, True)
-            if args.sample_only:
-                return
-            draw_chart(ticker_df, args)
+            if args.sample_only: return
+
+            [outfile, covered] = draw_chart(ticker_df, args)
+            new = Image.open(outfile).convert('RGB')
+            error = measure_error(sampleimg, new)
+
+            if os.path.exists("data/output.csv"):
+                df = pd.read_csv('data/output.csv')
+            else:
+                df = pd.DataFrame(errors, columns=['symbol', 'outfile', 'err', 'covered'])
+
+            error = measure_error(sampleimg, new)
+            errors.append([ticker, outfile, error, covered])
+            df = df.drop(df[df.symbol == ticker].index)
+            df1 = pd.DataFrame(errors, columns=['symbol', 'outfile', 'err', 'covered'])
+            pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-    # for ticker in ALL_TICKERS:
-    #     args.ticker = ticker
-    run(args)
+    run(parser.parse_args())

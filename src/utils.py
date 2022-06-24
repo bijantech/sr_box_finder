@@ -150,6 +150,24 @@ def log(*argv, **kwargs):
     if os.environ['SRCLI_VERBOSE']:
         print(*argv, **kwargs)
 
+def prepare_df(df, args):
+    if(len(args.tickers)!=1):
+        t = args.ticker
+        df['Range', t] = df.High[t] - df.Low[t]
+        df['RollingMax', t] = df.High[t].rolling(MAGIC_NUMBER).max()
+        df['RollingMin', t] = df.Low[t].rolling(MAGIC_NUMBER).min()
+        df['RollingRangeDivClose', t] = ((df.RollingMax[t] - df.RollingMin[t]) / df.Close[t])
+        df['MinRetracement', t] = df.RollingRangeDivClose[t] * args.retracement_size
+        df['MaxDiff', t] = df.RollingRangeDivClose[t] * args.dif
+    else:
+        df['Range'] = df.High - df.Low
+        df['RollingMax'] = df.High.rolling(MAGIC_NUMBER).max()
+        df['RollingMin'] = df.Low.rolling(MAGIC_NUMBER).min()
+        df['RollingRangeDivClose'] = ((df.RollingMax - df.RollingMin) / df.Close)
+        df['MinRetracement'] = df.RollingRangeDivClose * args.retracement_size
+        df['MaxDiff'] = df.RollingRangeDivClose * args.dif
+    return df
+
 def generate_lines(args, ax, dfRes):
     lines = []
     removed_indexes = []
@@ -228,24 +246,6 @@ def create_zig_zag_points(dfSeries, minRetrace):
     dfRes[["Value"]] = dfRes[["Value"]].astype(float)
     return dfRes
 
-def prepare_df(df, args):
-    if(len(args.tickers)!=1):
-        t = args.ticker
-        df['Range', t] = df.High[t] - df.Low[t]
-        df['RollingMax', t] = df.High[t].rolling(MAGIC_NUMBER).max()
-        df['RollingMin', t] = df.Low[t].rolling(MAGIC_NUMBER).min()
-        df['RollingRangeDivClose', t] = ((df.RollingMax[t] - df.RollingMin[t]) / df.Close[t])
-        df['MinRetracement', t] = df.RollingRangeDivClose[t] * args.retracement_size
-        df['MaxDiff', t] = df.RollingRangeDivClose[t] * args.dif
-    else:
-        df['Range'] = df.High - df.Low
-        df['RollingMax'] = df.High.rolling(MAGIC_NUMBER).max()
-        df['RollingMin'] = df.Low.rolling(MAGIC_NUMBER).min()
-        df['RollingRangeDivClose'] = ((df.RollingMax - df.RollingMin) / df.Close)
-        df['MinRetracement'] = df.RollingRangeDivClose * args.retracement_size
-        df['MaxDiff'] = df.RollingRangeDivClose * args.dif
-    return df
-
 def draw_lines(ax, lines):
     for line in lines:
         ax.hlines(
@@ -300,7 +300,7 @@ def draw_chart(ticker_df, args, sample=False):
             a.set_ylim(
                 [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
                  df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
-            if not args.no_candles:
+            if args.show_candles:
                 candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
         dfRes = create_zig_zag_points(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
     else:
@@ -308,7 +308,7 @@ def draw_chart(ticker_df, args, sample=False):
             a.set_ylim(
                 [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
                  df[df.index > MAGIC_NUMBER].High.max()*1.05])
-            if not args.no_candles:
+            if args.show_candles:
                 candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
         dfRes = create_zig_zag_points(df.Close, df.MinRetracement).dropna()
 
@@ -325,7 +325,7 @@ def draw_chart(ticker_df, args, sample=False):
         if args.optimize:
             title = f"optimize/{args.ticker}/-d {args.dif} -r {args.retracement_size}"
         else:
-            title = f"{args.ticker}/output"
+            title = f"output/{args.ticker}"
 
         outfile = f"out/{title}.png"
         if args.filter:
@@ -348,7 +348,7 @@ def draw_chart(ticker_df, args, sample=False):
     if args.ticker in SOURCE_LINES:
         sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
 
-    if not args.draw_boxes:
+    if args.no_boxes:
         draw_lines(axs[0], lines)
         if len(axs) > 1:
             draw_lines( axs[1], sample_lines)
@@ -359,7 +359,7 @@ def draw_chart(ticker_df, args, sample=False):
     if args.ticker in SOURCE_LINES:
         sample_boxes = convert_lines_to_boxes(sample_lines)
     boxes = []
-    if lines and args.draw_boxes:
+    if lines and not args.no_boxes:
         if not args.sample_only:
             log("experiment")
         # log(lines)
