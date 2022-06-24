@@ -80,6 +80,12 @@ parser.add_argument(
     help="Title of the file to save the chart to",
 )
 parser.add_argument(
+    "--sector",
+    type=str,
+    required=False,
+    help="Sectors symbols",
+)
+parser.add_argument(
     "--start-date",
     type=str,
     required=False,
