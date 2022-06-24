@@ -140,6 +140,7 @@ def get_data(args):
     ticker_df = web.get_data_yahoo(
         args.tickers, period=args.period, interval=args.interval, session=session
     )
+    ticker_df.index = pd.to_datetime(ticker_df.index)
     if args.start_date:
         ticker_df = ticker_df[args.start_date :]
     if args.stop_date:
@@ -212,12 +213,12 @@ def generate_lines(args, ax, dfRes):
                 lines.append([startx, endx, sum / len(values)])
     return lines
 
-def draw_boxes(ax, boxes, color=False):
+def draw_boxes(ax, boxes, colors=False):
     colors = colors_(len(boxes))
     counter = 0
 
     for box in boxes:
-        col = colors[counter] if color else "white"
+        col = colors[counter] if colors else "white"
         ax.add_patch(
             Rectangle(
               (box.x, box.y), box.width, box.height,
@@ -303,6 +304,7 @@ def draw_chart(ticker_df, args, sample=False):
             if args.show_candles:
                 candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
         dfRes = create_zig_zag_points(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
+        last_price = ticker_df.Close[args.ticker].iloc[-1]
     else:
         for a in axs:
             a.set_ylim(
@@ -311,6 +313,7 @@ def draw_chart(ticker_df, args, sample=False):
             if args.show_candles:
                 candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
         dfRes = create_zig_zag_points(df.Close, df.MinRetracement).dropna()
+        last_price = ticker_df.iloc[-1].Close
 
     for a in axs:
         a.set_xlim([MAGIC_NUMBER,df.index.max()])
@@ -319,7 +322,7 @@ def draw_chart(ticker_df, args, sample=False):
     lines = None
     if sample:
         outfile = f"out/samples/{args.ticker}.png"
-        if not args.ticker in SOURCE_LINES: return
+        if not args.ticker in SOURCE_LINES: return [None, None, None, None]
         lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     else:
         if args.optimize:
@@ -364,7 +367,7 @@ def draw_chart(ticker_df, args, sample=False):
             log("experiment")
         # log(lines)
         boxes = convert_lines_to_boxes(lines)
-        draw_boxes(axs[0], boxes, color=args.color)
+        draw_boxes(axs[0], boxes, colors=args.colors)
         log("boxes:", len(boxes))
         log(len(boxes))
         for b in boxes: log(b)
@@ -398,7 +401,6 @@ def draw_chart(ticker_df, args, sample=False):
             if args.show:
                 plt.show()
             else:
-                print(outfile)
                 plt.savefig(outfile)
 
     plt.clf()
@@ -406,9 +408,9 @@ def draw_chart(ticker_df, args, sample=False):
     plt.close()
 
     if args.ticker in SOURCE_LINES:
-        return [outfile, get_error2(sample_boxes, boxes)]
+        return [outfile, get_error2(sample_boxes, boxes), boxes, last_price]
     else:
-        return [outfile, 0]
+        return [outfile, None, boxes, last_price]
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
@@ -423,6 +425,14 @@ def draw_chart(ticker_df, args, sample=False):
     # axs[1].plot(ticker_df.Range)
     # axs[2].plot(ticker_df.MaxDiff[ticker])
     # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
+
+class Chart():
+    price_in_box: bool
+    last_price: float
+
+    # def __init__(self, x, y, width, height):
+    def __init__(self):
+        pass
 
 def get_error2(sample_boxes, boxes):
     last_x_box = sample_boxes[0]

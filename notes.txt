@@ -143,3 +143,15 @@ If so, does it make sense that the NN should have to run the program for every t
 If I were to create the training data before hand, then finding the optimal parameters would be simply a matter of finding whichever training sample that has the lower error rate.
 I suppose it would make sense if I needed the NN to predict what the error would be for a given set of parameters, but I don't so perhaps a NN is not the right solution.
 =====================
+
+
+Aayush questions:
+- airlines sector has no symbols, only index definition. Should I run the analysis on the index? (XAL)
+- deleted
+- ARNA as its unlisted as of 3/10/22
+
+- no data:
+- BF.B from consumer staples as it was not returning data
+- finance: NASDAQ:PBCT, NYSE:BRK.B,NASDAQ:PBCT, NYSE:BRK.B,
+- regional banking NASDAQ:PBCT,
+- mobile payments: TSXV:WI

@@ -81,7 +81,7 @@ parser.add_argument(
     help="Title of the file to save the chart to",
 )
 parser.add_argument(
-    "--sector",
+    "--sectors",
     type=str,
     required=False,
     help="Sectors symbols",
@@ -89,6 +89,7 @@ parser.add_argument(
 parser.add_argument(
     "--start-date",
     type=str,
+    default="2021-11-01",
     required=False,
     help="Start Date",
 )
@@ -96,6 +97,7 @@ parser.add_argument(
     "--stop-date",
     type=str,
     required=False,
+    default="2022-06-18",
     help="Stop Date",
 )
 parser.add_argument(
@@ -166,7 +168,7 @@ parser.add_argument(
     help="Show sample on right",
 )
 parser.add_argument(
-    "--color",
+    "--colors",
     action="store_true",
     required=False,
     help="Show multiple colors for boxes",
@@ -179,80 +181,98 @@ parser.add_argument(
 )
 
 def run(args):
-    if args.sector:
-        df = read_sectors()
-        tsyms = df[[args.sector]].dropna()[args.sector].str.split(":").str[-1].values
-        tsyms = ",".join(list(tsyms[3:].astype(str)))
-        args.tickers = tsyms
-
-    if (args.tickers=="SPY500"):
-        args.tickers = ALL_TICKERS
-    elif (args.tickers=="AAYUSH"):
-        args.tickers = AAYUSH_TICKERS
+    if (args.sectors=="ALL"):
+        sectors = read_sectors(None).columns
+    elif args.sectors is not None:
+        sectors = args.sectors.split(",")
+        # sectors = [args.sectors]
     else:
-        args.tickers = args.tickers.split(",")
-    print(args.tickers)
-    ticker_df = get_data(args)
+        sectors = [None]
 
-    if args.verbose:
-        os.environ['SRCLI_VERBOSE'] = "1"
-    else:
-        os.environ['SRCLI_VERBOSE'] = ""
-
-    for ticker in args.tickers:
-        if args.show:
-            print("\n"+ticker)
-        args.ticker = ticker
-        errors = []
-
-        [sample, covered] = draw_chart(ticker_df, args, True)
-        sampleimg = Image.open(sample).convert('RGB')
-
-        if args.optimize:
-            total_count = len(args.diffs) * len(args.rets)
-            pbar = tqdm(total = total_count)
-            counter = 0
-            for dif in args.diffs:
-                for ret in args.rets:
-                    for num in args.nums:
-                        # if dif < seg: continue
-                        args.retracement_size = ret
-                        args.dif = dif
-                        args.number = num
-                        [outfile, covered] = draw_chart(ticker_df, args)
-                        if os.path.exists(outfile):
-                            new = Image.open(outfile).convert('RGB')
-                            error = measure_error(sampleimg, new)
-                            # print("err", error)
-                            errors.append([ticker, dif, ret, num, outfile,
-                                           error, covered])
-                        # print("dif", dif, "ret", ret)
-                        pbar.update(1)
-                        counter += 1
-
-            pbar.close()
-            df = pd.read_csv('data/samples.csv')
-            df = df.drop(df[df.symbol == ticker].index)
-            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num',
-                                                'outfile', 'err', 'covered'])
-            pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
-        else:
-            if args.sample_only: return
-
-            [outfile, covered] = draw_chart(ticker_df, args)
-            new = Image.open(outfile).convert('RGB')
-            error = measure_error(sampleimg, new)
-
-            if os.path.exists("data/output.csv"):
-                df = pd.read_csv('data/output.csv')
+    for sector in sectors:
+        args.sectors = sector
+        if args.sectors:
+            args.tickers = read_sectors(sector)
+            if len(args.tickers) == 0:
+                print(f"{sector} sector has no tickers!")
+                continue
             else:
-                df = pd.DataFrame(errors, columns=['symbol', 'outfile', 'err', 'covered'])
+                print("Running", args.sectors)
 
-            error = measure_error(sampleimg, new)
-            errors.append([ticker, outfile, error, covered])
-            df = df.drop(df[df.symbol == ticker].index)
-            df1 = pd.DataFrame(errors, columns=['symbol', 'outfile', 'err', 'covered'])
-            pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
+        if (args.tickers=="SPY500"):
+            args.tickers = ALL_TICKERS
+        elif (args.tickers=="AAYUSH"):
+            args.tickers = AAYUSH_TICKERS
+        else:
+            args.tickers = args.tickers.split(",")
+        # print(args.tickers)
+        ticker_df = get_data(args)
+
+        if args.verbose:
+            os.environ['SRCLI_VERBOSE'] = "1"
+        else:
+            os.environ['SRCLI_VERBOSE'] = ""
+
+        for ticker in args.tickers:
+            try:
+                if args.show:
+                    print("\n"+ticker)
+                args.ticker = ticker
+                errors = []
+
+                sampleimg = None
+                [sample, covered, sboxes, last_price, price_in_box] = draw_chart(ticker_df, args, True)
+                if not sample is None:
+                    sampleimg = Image.open(sample).convert('RGB')
+
+                if args.optimize:
+                    total_count = len(args.diffs) * len(args.rets)
+                    pbar = tqdm(total = total_count)
+                    counter = 0
+                    for dif in args.diffs:
+                        for ret in args.rets:
+                            for num in args.nums:
+                                # if dif < seg: continue
+                                args.retracement_size = ret
+                                args.dif = dif
+                                args.number = num
+                                [outfile, covered, boxes, last_price, price_in_box] = draw_chart(ticker_df, args)
+                                if os.path.exists(outfile):
+                                    new = Image.open(outfile).convert('RGB')
+                                    error = measure_error(sampleimg, new)
+                                    errors.append([ticker, dif, ret, num, outfile,
+                                                   error, covered])
+                                pbar.update(1)
+                                counter += 1
+
+                    pbar.close()
+                    df = pd.read_csv('data/samples.csv')
+                    df = df.drop(df[df.symbol == ticker].index)
+                    df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num',
+                                                        'outfile', 'err', 'covered'])
+                    pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
+                else:
+                    if args.sample_only: return
+
+                    [outfile, covered, boxes, last_price, price_in_box] = draw_chart(ticker_df, args)
+                    new = Image.open(outfile).convert('RGB')
+                    error = None
+
+                    if sampleimg: error = measure_error(sampleimg, new)
+
+                    cols = ['sector', 'symbol', 'outfile', 'err', 'covered',
+                            'boxes', 'lastprice', 'price_in_box']
+                    if os.path.exists("data/output.csv"):
+                        df = pd.read_csv('data/output.csv')
+                    else:
+                        df = pd.DataFrame(errors, columns=cols)
+                    errors.append([args.sectors, ticker, outfile, error,
+                                   covered, boxes, last_price, price_in_box])
+                    df = df.drop(df[df.symbol == ticker].index)
+                    df1 = pd.DataFrame(errors, columns=cols)
+                    pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
+            except Exception as e:
+                print("Run failed:", ticker, e)
 
 if __name__ == "__main__":
     run(parser.parse_args())

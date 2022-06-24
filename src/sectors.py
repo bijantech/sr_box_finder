@@ -16,7 +16,7 @@ def write_sectors():
                     sectors.items() }))
     file1.close()
 
-def read_sectors():
+def read_sectors(sector):
     sectors = json.load(open('allsectors.json', 'r'))
     df = pd.read_json("allsectors.json")
     s1 = pd.Series(df.Transportation[0].split(","), name="Transportation2")
@@ -26,12 +26,17 @@ def read_sectors():
        dfs.append(pd.DataFrame(df[col].str.split(",").explode().reset_index(drop=True)))
     df2 = pd.concat(dfs, axis=1, ignore_index=True)
     df2.columns = df.columns
-    return df2
+    if sector is not None:
+        tsyms = df2[[sector]].dropna()[sector].str.split(":").str[-1].values
+        tsyms = ",".join(list(tsyms[3:].astype(str)))
+        return tsyms
+    else:
+        return df2
 
 # drop anything that has ##INDEX in it
 
 
 if __name__ == "__main__":
     # write_sectors()
-    df = read_sectors()
+    df = read_sectors(None)
     import pdbr; pdbr.set_trace()
