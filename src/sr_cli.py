@@ -158,6 +158,12 @@ parser.add_argument(
     required=False,
     help="Show sample on right",
 )
+parser.add_argument(
+    "--color",
+    action="store_true",
+    required=False,
+    help="Show multiple colors for boxes",
+)
 
 def run(args):
     if (args.tickers=="SPY500"):
@@ -219,7 +225,7 @@ def run(args):
                                                 'outfile', 'err', 'covered'])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
-            if not args.side_by_side:
+            if not args.side_by_side :
                 draw_chart(ticker_df, args, True)
             if args.sample_only:
                 return

@@ -194,15 +194,17 @@ def generate_lines(args, ax, dfRes):
                 lines.append([startx, endx, sum / len(values)])
     return lines
 
-def draw_boxes(ax, boxes):
+def draw_boxes(ax, boxes, color=False):
     colors = colors_(len(boxes))
     counter = 0
+
     for box in boxes:
+        col = colors[counter] if color else "white"
         ax.add_patch(
             Rectangle(
               (box.x, box.y), box.width, box.height,
-              facecolor = colors[counter],
-              edgecolor = colors[counter],)
+              facecolor = col,
+              edgecolor = col,)
         )
         counter += 1
 
@@ -317,6 +319,7 @@ def draw_chart(ticker_df, args, sample=False):
     lines = None
     if sample:
         outfile = f"out/samples/{args.ticker}.png"
+        if not args.ticker in SOURCE_LINES: return
         lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     else:
         title = f"{args.ticker}/-d {args.dif} -r {args.retracement_size}"
@@ -337,7 +340,9 @@ def draw_chart(ticker_df, args, sample=False):
     if not args.no_sr_lines and not lines:
         for a in axs:
             lines = generate_lines(args, a, dfRes)
-    sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
+
+    if args.ticker in SOURCE_LINES:
+        sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
 
     if not args.draw_boxes:
         draw_lines(axs[0], lines)
@@ -347,14 +352,15 @@ def draw_chart(ticker_df, args, sample=False):
     log(lines)
 
     is_in_box = False
-    sample_boxes = convert_lines_to_boxes(sample_lines)
+    if args.ticker in SOURCE_LINES:
+        sample_boxes = convert_lines_to_boxes(sample_lines)
     boxes = []
     if lines and args.draw_boxes:
         if not args.sample_only:
             log("experiment")
         # log(lines)
         boxes = convert_lines_to_boxes(lines)
-        draw_boxes(axs[0], boxes)
+        draw_boxes(axs[0], boxes, color=args.color)
         log("boxes:", len(boxes))
         log(len(boxes))
         for b in boxes: log(b)
@@ -391,7 +397,10 @@ def draw_chart(ticker_df, args, sample=False):
     plt.cla()
     plt.close()
 
-    return [outfile, get_error2(sample_boxes, boxes)]
+    if args.ticker in SOURCE_LINES:
+        return [outfile, get_error2(sample_boxes, boxes)]
+    else:
+        return [outfile, 0]
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
