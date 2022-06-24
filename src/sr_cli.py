@@ -5,7 +5,8 @@ import os.path
 import os
 from argparse import ArgumentParser
 from PIL import Image
-from utils import draw_chart, get_data, measure_error, get_error2, ALL_TICKERS, AAYUSH_TICKERS
+from utils import get_data, ALL_TICKERS, AAYUSH_TICKERS
+from chart import Chart
 from tqdm.auto import tqdm
 from sectors import read_sectors
 
@@ -220,10 +221,7 @@ def run(args):
                 args.ticker = ticker
                 errors = []
 
-                sampleimg = None
-                [sample, covered, sboxes, last_price, price_in_box] = draw_chart(ticker_df, args, True)
-                if not sample is None:
-                    sampleimg = Image.open(sample).convert('RGB')
+                chart = Chart(ticker_df, args, True)
 
                 if args.optimize:
                     total_count = len(args.diffs) * len(args.rets)
@@ -236,12 +234,16 @@ def run(args):
                                 args.retracement_size = ret
                                 args.dif = dif
                                 args.number = num
-                                [outfile, covered, boxes, last_price, price_in_box] = draw_chart(ticker_df, args)
-                                if os.path.exists(outfile):
-                                    new = Image.open(outfile).convert('RGB')
-                                    error = measure_error(sampleimg, new)
-                                    errors.append([ticker, dif, ret, num, outfile,
-                                                   error, covered])
+                                chart = Chart(ticker_df, args)
+                                if os.path.exists(chart.outfile):
+                                    errors.append([
+                                        chart.ticker,
+                                        chart.dif,
+                                        chart.ret,
+                                        chart.num,
+                                        chart.outfile,
+                                        chart.error,
+                                        chart.covered])
                                 pbar.update(1)
                                 counter += 1
 
@@ -253,26 +255,32 @@ def run(args):
                     pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
                 else:
                     if args.sample_only: return
-
-                    [outfile, covered, boxes, last_price, price_in_box] = draw_chart(ticker_df, args)
-                    new = Image.open(outfile).convert('RGB')
-                    error = None
-
-                    if sampleimg: error = measure_error(sampleimg, new)
-
+                    chart = Chart(ticker_df, args)
                     cols = ['sector', 'symbol', 'outfile', 'err', 'covered',
                             'boxes', 'lastprice', 'price_in_box']
                     if os.path.exists("data/output.csv"):
                         df = pd.read_csv('data/output.csv')
                     else:
                         df = pd.DataFrame(errors, columns=cols)
-                    errors.append([args.sectors, ticker, outfile, error,
-                                   covered, boxes, last_price, price_in_box])
+
+                    errors.append([
+                        sector,
+                        chart.ticker,
+                        chart.outfile,
+                        chart.error,
+                        chart.covered,
+                        chart.boxes,
+                        chart.last_price,
+                        chart.price_in_box,
+                    ])
+                    print(chart)
+                    # print(errors)
                     df = df.drop(df[df.symbol == ticker].index)
                     df1 = pd.DataFrame(errors, columns=cols)
                     pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
             except Exception as e:
                 print("Run failed:", ticker, e)
+                raise(e)
 
 if __name__ == "__main__":
     run(parser.parse_args())
