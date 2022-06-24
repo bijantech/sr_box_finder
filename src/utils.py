@@ -141,9 +141,6 @@ def get_data(args):
         ticker_df = ticker_df[: args.stop_date]
     return ticker_df.reset_index()
 
-def measure_error(x,y):
-    return imgcompare.image_diff_percent(x, y)
-
 def log(*argv, **kwargs):
     if os.environ['SRCLI_VERBOSE']:
         print(*argv, **kwargs)
@@ -196,6 +193,7 @@ def draw_boxes(args, ax, lines, ticker_df):
     from matplotlib.patches import Rectangle
     counter = 0
     max_box_x = 0
+    boxes = []
 
     def find_overlapping(lines, line):
         ol = []
@@ -233,8 +231,7 @@ def draw_boxes(args, ax, lines, ticker_df):
                         last_box_max_y = max_y
                         last_box_min_y = min_y
 
-                    # print("adding patch", "x,y", min_x, round(min_y),
-                    #       "width,height", max_x-min_x, round(max_y-min_y))
+                    boxes.append([min_x, min_y, max_x-min_x, max_y-min_y])
                     ax.add_patch(
                         Rectangle(
                           (min_x, min_y), max_x-min_x, max_y-min_y,
@@ -242,6 +239,8 @@ def draw_boxes(args, ax, lines, ticker_df):
                           edgecolor= 'white',
                           fill=(not args.empty_boxes),)
                     )
+
+    is_in_box = False
 
     if max_box_x:
         if(len(args.tickers)!=1):
@@ -255,9 +254,11 @@ def draw_boxes(args, ax, lines, ticker_df):
 
         diff = (md - mbd).days
         is_in_last_box_range = (current_price > last_box_min_y) and (current_price < last_box_max_y)
-        return (is_in_last_box_range) and diff <= 10
+        is_in_box = (is_in_last_box_range) and diff <= 10
     else:
-        return False
+        is_in_box = False
+
+    return [is_in_box, boxes]
 
 def createZigZagPoints(dfSeries, minRetrace):
     curVal = dfSeries[0]
@@ -307,21 +308,6 @@ def draw_lines(ax, lines):
             color="w",
         )
 
-def convert_datex(ticker_df, datelines):
-    newlines = []
-    try:
-        for line in datelines:
-            newlines.append([
-                ticker_df[ticker_df.Date.astype(str) == line[0]].Date.index[0],
-                ticker_df[ticker_df.Date.astype(str) == line[1]].Date.index[0],
-                line[2]
-            ])
-    except Exception as e:
-        print(e)
-        import pdbr; pdbr.set_trace()
-        pass
-
-    return newlines
 
 def draw_chart(ticker_df, args, sample=False):
     log("\n\n" + args.ticker)
@@ -385,7 +371,7 @@ def draw_chart(ticker_df, args, sample=False):
 
     lines = None
     if sample:
-        outfile = f"data/samples/{args.ticker}.png"
+        outfile = f"out/samples/{args.ticker}.png"
         lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     else:
         title = f"{args.ticker}/-d {args.dif} -r {args.retracement_size}"
@@ -407,6 +393,8 @@ def draw_chart(ticker_df, args, sample=False):
         for a in axs:
             lines = generate_lines(args, a, dfRes)
     sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
+
+
     if not args.draw_boxes:
         draw_lines(axs[0], lines)
         if len(axs) > 1:
@@ -416,11 +404,17 @@ def draw_chart(ticker_df, args, sample=False):
 
     is_in_box = False
     if lines and args.draw_boxes:
+        if not args.sample_only:
+            print("experiment")
         # print(lines)
-        is_in_box = draw_boxes(args, axs[0], lines, ticker_df)
+        boxes = convert_lines_to_boxes(lines)
+        [is_in_box, boxes] = draw_boxes(args, axs[0], lines, ticker_df)
+        print(boxes)
         # import pdbr; pdbr.set_trace()
         if len(axs) > 1:
-            draw_boxes(args, axs[1], sample_lines, ticker_df)
+            print("sample")
+            [_, boxes] = draw_boxes(args, axs[1], sample_lines, ticker_df)
+            print(boxes)
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
@@ -431,6 +425,8 @@ def draw_chart(ticker_df, args, sample=False):
 
     for a in axs:
         a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+
+    get_error2(ticker_df, SOURCE_LINES[args.ticker])
 
     if args.optimize:
         plt.savefig(outfile)
@@ -445,6 +441,7 @@ def draw_chart(ticker_df, args, sample=False):
             plt.savefig(outfile)
         else:
             plt.show()
+
 
     plt.clf()
     plt.cla()
@@ -466,3 +463,31 @@ def draw_chart(ticker_df, args, sample=False):
 
     # axs[2].plot(ticker_df.MaxDiff[ticker])
     # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
+
+def get_error2(ticker_df, lines, ticker):
+    source = convert_datex(ticker_df, lines)
+    import pdbr; pdbr.set_trace()
+    pass
+
+def measure_error(x,y):
+    return imgcompare.image_diff_percent(x, y)
+
+def convert_lines_to_boxes(lines):
+    import pdbr; pdbr.set_trace()
+    pass
+
+def convert_datex(ticker_df, datelines):
+    newlines = []
+    try:
+        for line in datelines:
+            newlines.append([
+                ticker_df[ticker_df.Date.astype(str) == line[0]].Date.index[0],
+                ticker_df[ticker_df.Date.astype(str) == line[1]].Date.index[0],
+                line[2]
+            ])
+    except Exception as e:
+        print(e)
+        import pdbr; pdbr.set_trace()
+        pass
+
+    return newlines

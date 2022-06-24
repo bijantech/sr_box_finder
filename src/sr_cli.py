@@ -217,9 +217,10 @@ def run(args):
             df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
-            # sample = draw_chart(ticker_df, args, True)
-            # if args.sample_only:
-            #     return
+            if not args.side_by_side:
+                draw_chart(ticker_df, args, True)
+            if args.sample_only:
+                return
             draw_chart(ticker_df, args)
 
 if __name__ == "__main__":
