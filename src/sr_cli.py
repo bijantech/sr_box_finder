@@ -184,7 +184,7 @@ def run(args):
             difs = range(1, 30)
 
         rets = range(5, 25)
-        rets = [5]
+        # rets = [5]
 
         errors = []
 

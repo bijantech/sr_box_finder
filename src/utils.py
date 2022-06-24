@@ -233,6 +233,8 @@ def draw_boxes(args, ax, lines, ticker_df):
                         last_box_max_y = max_y
                         last_box_min_y = min_y
 
+                    # print("adding patch", "x,y", min_x, round(min_y),
+                    #       "width,height", max_x-min_x, round(max_y-min_y))
                     ax.add_patch(
                         Rectangle(
                           (min_x, min_y), max_x-min_x, max_y-min_y,
@@ -416,9 +418,9 @@ def draw_chart(ticker_df, args, sample=False):
     if lines and args.draw_boxes:
         # print(lines)
         is_in_box = draw_boxes(args, axs[0], lines, ticker_df)
+        # import pdbr; pdbr.set_trace()
         if len(axs) > 1:
             draw_boxes(args, axs[1], sample_lines, ticker_df)
-
 
     import matplotlib.ticker as ti
     def mydate(x,pos):
@@ -431,7 +433,6 @@ def draw_chart(ticker_df, args, sample=False):
         a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
     if args.optimize:
-        # print(outfile)
         plt.savefig(outfile)
     else:
         # plt.title(ticker)
