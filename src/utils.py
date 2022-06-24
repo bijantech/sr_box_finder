@@ -25,6 +25,7 @@ from imgcompare import is_equal
 import os
 from PIL import Image
 from matplotlib.patches import Rectangle
+from mathutil import overlap
 
 expire_after = datetime.timedelta(days=3)
 session = requests_cache.CachedSession('yfinance.cache')
@@ -204,7 +205,7 @@ def draw_boxes(ax, boxes):
         )
         counter += 1
 
-def createZigZagPoints(dfSeries, minRetrace):
+def create_zig_zag_points(dfSeries, minRetrace):
     curVal = dfSeries[0]
     curPos = dfSeries.index[0]
     curDir = 1
@@ -298,7 +299,7 @@ def draw_chart(ticker_df, args, sample=False):
                  df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
             if not args.no_candles:
                 candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
-        dfRes = createZigZagPoints(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
+        dfRes = create_zig_zag_points(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
     else:
         for a in axs:
             a.set_ylim(
@@ -306,7 +307,7 @@ def draw_chart(ticker_df, args, sample=False):
                  df[df.index > MAGIC_NUMBER].High.max()*1.05])
             if not args.no_candles:
                 candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
-        dfRes = createZigZagPoints(df.Close, df.MinRetracement).dropna()
+        dfRes = create_zig_zag_points(df.Close, df.MinRetracement).dropna()
 
     for a in axs:
         a.set_xlim([MAGIC_NUMBER,df.index.max()])
@@ -337,7 +338,6 @@ def draw_chart(ticker_df, args, sample=False):
             lines = generate_lines(args, a, dfRes)
     sample_lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
 
-
     if not args.draw_boxes:
         draw_lines(axs[0], lines)
         if len(axs) > 1:
@@ -355,12 +355,11 @@ def draw_chart(ticker_df, args, sample=False):
         log("boxes:", len(boxes))
         log(len(boxes))
         for b in boxes: log(b)
-        # import pdbr; pdbr.set_trace()
+        sample_boxes = convert_lines_to_boxes(sample_lines)
         if len(axs) > 1:
             log("sample")
-            boxes = convert_lines_to_boxes(sample_lines)
-            draw_boxes(axs[1], boxes)
-            log("boxes:", len(boxes))
+            draw_boxes(axs[1], sample_boxes)
+            log("boxes:", len(sample_boxes))
             for b in boxes: log(b)
 
     import matplotlib.ticker as ti
@@ -373,7 +372,8 @@ def draw_chart(ticker_df, args, sample=False):
     for a in axs:
         a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
-    # get_error2(ticker_df, SOURCE_LINES[args.ticker])
+    # get any boxes that are greater than the x
+    # print("% covered of last (x) sample box", max_overlap/area)
 
     if args.optimize:
         plt.savefig(outfile)
@@ -389,16 +389,14 @@ def draw_chart(ticker_df, args, sample=False):
         else:
             plt.show()
 
-
     plt.clf()
     plt.cla()
     plt.close()
-    return outfile
+    return [outfile, get_error2(boxes, sample_boxes)]
 
     # plt.xticks(df.index, labels=df.Date.astype(str))
     # ax.set_xticklabels(labels)
     # plt.xticks(df.index,df.Date)
-
     # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
     # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
     # plt.axis('off')
@@ -407,14 +405,23 @@ def draw_chart(ticker_df, args, sample=False):
     # df['AvgRng'] = df.Range.rolling(MAGIC_NUMBER).mean()
     # axs[1].plot(ticker_df.MinRetracement)
     # axs[1].plot(ticker_df.Range)
-
     # axs[2].plot(ticker_df.MaxDiff[ticker])
     # ax.text(.5,.8,f'{ticker} magic:{MAGIC_NUMBER}\nRollingRangeDivClose\nMinRetracement\nMaxDiff', horizontalalignment='center', transform=ax.transAxes)
 
-def get_error2(ticker_df, lines, ticker):
-    source = convert_datex(ticker_df, lines)
-    # import pdbr; pdbr.set_trace()
-    pass
+def get_error2(sample_boxes, boxes):
+    last_x_box = sample_boxes[0]
+    area = last_x_box.height * last_x_box.width
+    max_overlap = 0
+    for box in boxes:
+        overlapx = overlap(
+            box.x, (box.x + box.width),
+            last_x_box.x, (last_x_box.x + last_x_box.width))
+        overlapy = overlap(
+            box.y, (box.y + box.height),
+            last_x_box.y, (last_x_box.y + last_x_box.height))
+        ol = overlapx * overlapy
+        if ol > max_overlap: max_overlap = ol
+    return max_overlap/area
 
 def measure_error(x,y):
     return imgcompare.image_diff_percent(x, y)
@@ -433,25 +440,6 @@ class Box():
 
     def __repr__(self):
         return f"({self.x}, {self.y}), {self.width}, {self.height}"
-
-    # def find_overlapping(lines, line):
-    #     ol = []
-    #     for line2 in lines:
-    #         if line2[0] == line[0] and line2[2] == line[2]: continue
-    #         if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
-    #     return ol
-    #
-    # def find_min_x(lines, line):
-    #     ol = find_overlapping(lines, line)
-    #     minx = ol[0][0]
-    #     for line2 in ol:
-    #         if line2[0] < minx: minx = line2[0]
-    #     return minx
-
-    def does_contain(box1, box2):
-        # does x overlap?
-        min_x = min(box1.x, box2.x)
-        # find the lowest y value
 
     def x_values_overlap(box1, box2):
         if box1.x == box2.x:

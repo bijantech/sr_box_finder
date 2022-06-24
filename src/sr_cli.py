@@ -5,7 +5,7 @@ import os.path
 import os
 from argparse import ArgumentParser
 from PIL import Image
-from utils import draw_chart, get_data, measure_error, ALL_TICKERS, AAYUSH_TICKERS
+from utils import draw_chart, get_data, measure_error, get_error2, ALL_TICKERS, AAYUSH_TICKERS
 from tqdm.auto import tqdm
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
@@ -189,7 +189,7 @@ def run(args):
         errors = []
 
         if args.optimize:
-            sample = draw_chart(ticker_df, args, True)
+            [sample, covered] = draw_chart(ticker_df, args, True)
             sampleimg = Image.open(sample).convert('RGB')
             total_count = len(difs) * len(rets)
             pbar = tqdm(total = total_count)
@@ -201,12 +201,13 @@ def run(args):
                         args.retracement_size = ret
                         args.dif = dif
                         args.number = num
-                        outfile = draw_chart(ticker_df, args)
+                        [outfile, covered] = draw_chart(ticker_df, args)
                         if os.path.exists(outfile):
                             new = Image.open(outfile).convert('RGB')
                             error = measure_error(sampleimg, new)
                             # print("err", error)
-                            errors.append([ticker, dif, ret, num, outfile, error])
+                            errors.append([ticker, dif, ret, num, outfile,
+                                           error, covered])
                         # print("dif", dif, "ret", ret)
                         pbar.update(1)
                         counter += 1
@@ -214,7 +215,8 @@ def run(args):
             pbar.close()
             df = pd.read_csv('data/samples.csv')
             df = df.drop(df[df.symbol == ticker].index)
-            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num', 'outfile', 'err', ])
+            df1 = pd.DataFrame(errors, columns=['symbol', 'dif','ret','num',
+                                                'outfile', 'err', 'covered'])
             pd.concat([df1, df]).to_csv(f'data/samples.csv', index=False)
         else:
             if not args.side_by_side:
@@ -227,5 +229,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # for ticker in ALL_TICKERS:
     #     args.ticker = ticker
-
     run(args)
