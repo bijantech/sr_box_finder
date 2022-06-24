@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from PIL import Image
 from utils import draw_chart, get_data, measure_error, get_error2, ALL_TICKERS, AAYUSH_TICKERS
 from tqdm.auto import tqdm
+from sectors import read_sectors
 
 parser = ArgumentParser(description="Algorithmic Support and Resistance")
 parser.add_argument(
@@ -170,8 +171,20 @@ parser.add_argument(
     required=False,
     help="Show multiple colors for boxes",
 )
+parser.add_argument(
+    "--show",
+    action="store_true",
+    required=False,
+    help="Show multiple colors for boxes",
+)
 
 def run(args):
+    if args.sector:
+        df = read_sectors()
+        tsyms = df[[args.sector]].dropna()[args.sector].str.split(":").str[-1].values
+        tsyms = ",".join(list(tsyms[3:].astype(str)))
+        args.tickers = tsyms
+
     if (args.tickers=="SPY500"):
         args.tickers = ALL_TICKERS
     elif (args.tickers=="AAYUSH"):
@@ -187,17 +200,9 @@ def run(args):
         os.environ['SRCLI_VERBOSE'] = ""
 
     for ticker in args.tickers:
-        print("\n"+ticker)
+        if args.show:
+            print("\n"+ticker)
         args.ticker = ticker
-        # print(args)
-        if args.no_sr_lines:
-            difs = [11]
-        else:
-            difs = range(1, 30)
-
-        rets = range(5, 25)
-        # rets = [5]
-
         errors = []
 
         if args.optimize:

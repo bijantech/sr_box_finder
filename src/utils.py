@@ -322,7 +322,11 @@ def draw_chart(ticker_df, args, sample=False):
         if not args.ticker in SOURCE_LINES: return
         lines = convert_datex(ticker_df, SOURCE_LINES[args.ticker])
     else:
-        title = f"{args.ticker}/-d {args.dif} -r {args.retracement_size}"
+        if args.optimize:
+            title = f"optimize/{args.ticker}/-d {args.dif} -r {args.retracement_size}"
+        else:
+            title = f"{args.ticker}/output"
+
         outfile = f"out/{title}.png"
         if args.filter:
             dt = datetime.datetime.now().strftime("%y%m%d%H%M")
@@ -385,13 +389,17 @@ def draw_chart(ticker_df, args, sample=False):
         # plt.title(ticker)
         if args.filter:
             if is_in_box:
-                print(args.ticker)
+                # print(args.ticker)
                 outfile = os.path.join(outdir, f"{args.ticker}.png")
             else:
                 outfile = os.path.join(outdirno, f"{args.ticker}.png")
             plt.savefig(outfile)
         else:
-            plt.show()
+            if args.show:
+                plt.show()
+            else:
+                print(outfile)
+                plt.savefig(outfile)
 
     plt.clf()
     plt.cla()
