@@ -98,26 +98,26 @@ class Chart():
 
         if(len(args.tickers)!=1):
             for a in axs:
-                a.set_ylim(
-                    [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
-                     df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
+                # a.set_ylim(
+                #     [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
+                #      df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
                 if args.show_candles:
                     candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
             dfRes = create_zig_zag_points(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
             last_price = ticker_df.Close[args.ticker].iloc[-1]
         else:
             for a in axs:
-                a.set_ylim(
-                    [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
-                     df[df.index > MAGIC_NUMBER].High.max()*1.05])
+                # a.set_ylim(
+                #     [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
+                #      df[df.index > MAGIC_NUMBER].High.max()*1.05])
                 if args.show_candles:
                     candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
             dfRes = create_zig_zag_points(df.Close, df.MinRetracement).dropna()
             last_price = ticker_df.iloc[-1].Close
 
-        for a in axs:
-            a.set_xlim([MAGIC_NUMBER,df.index.max()])
-            cursor = Cursor(a, color="gray", linewidth=1)
+        # for a in axs:
+        #     a.set_xlim([MAGIC_NUMBER,df.index.max()])
+        #     cursor = Cursor(a, color="gray", linewidth=1)
 
         lines = None
         if self.is_sample:
@@ -156,7 +156,7 @@ class Chart():
             if len(axs) > 1:
                 draw_lines( axs[1], sample_lines)
 
-        log(lines)
+        # log(lines)
 
         is_in_box = False
         if args.ticker in SOURCE_LINES:
@@ -165,7 +165,6 @@ class Chart():
         if lines and not args.no_boxes:
             if not args.sample_only:
                 log("experiment")
-            # log(lines)
             boxes = convert_lines_to_boxes(lines)
             draw_boxes(axs[0], boxes, colors=args.colors)
             log("boxes:", len(boxes))
@@ -183,8 +182,8 @@ class Chart():
             except :
                 return ''
 
-        for a in axs:
-            a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+        # for a in axs:
+        #     a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
 
         if args.optimize:
             plt.savefig(outfile)
@@ -265,10 +264,10 @@ def generate_lines(args, ax, dfRes):
                             counter = counter + 1
             if counter + 1 >= args.number:
                 sum = 0
-                log("Support at ", end="")
-                for i in range(len(values) - 1):
-                    log("{:0.2f} and ".format(values[i]), end="")
-                log("{:0.2f} \n".format(values[len(values) - 1]), end="")
+                # log("Support at ", end="")
+                # for i in range(len(values) - 1):
+                #     log("{:0.2f} and ".format(values[i]), end="")
+                # log("{:0.2f} \n".format(values[len(values) - 1]), end="")
                 removed_indexes.extend(dropindexes)
                 for value in values: sum = sum + value
                 if endx > x_max: x_max = endx
@@ -328,13 +327,15 @@ def convert_lines_to_boxes(lines):
         for line2 in lines:
             if line2[0] == line[0] and line2[2] == line[2]: continue
             if line[0] < line2[1] and line[1] > line2[0]: ol.append(line2)
+        ol.append(line)
         return ol
 
     def find_min_x(lines, line):
         ol = find_overlapping(lines, line)
         minx = ol[0][0]
         for line2 in ol:
-            if line2[0] < minx: minx = line2[0]
+            if line2[0] < minx:
+                minx = line2[0]
         return minx
 
     def find_max_x(lines, line):
@@ -353,35 +354,13 @@ def convert_lines_to_boxes(lines):
                 max_x = find_max_x(lines, line)
                 min_y = min(line[2], line2[2])
                 max_y = max(line[2], line2[2])
-                if (max_y - min_y) > 2:
-                    if max_x > max_box_x:
-                        max_box_x = max_x
-                        last_box_max_y = max_y
-                        last_box_min_y = min_y
 
-                    boxes.append(Box(x=min_x, y=min_y, width=max_x-min_x, height=max_y-min_y))
+                if (max_y - min_y) > 2: # minimum size to draw a box TODO
+                    width = max_x-min_x
+                    height = max_y-min_y
+                    boxes.append(Box(x=min_x, y=min_y, width=width, height=height))
 
-    # return boxes
     return Box.consolidate(boxes)
-    # is_in_box = False
-    #
-    # if max_box_x:
-    #     if(len(args.tickers)!=1):
-    #         mbd = ticker_df.loc[max_box_x].Date[0]
-    #         md = ticker_df.loc[ticker_df.index.max()].Date[0]
-    #         current_price = ticker_df.loc[ticker_df.index.max()].Close[args.ticker]
-    #     else:
-    #         mbd = ticker_df.loc[max_box_x].Date
-    #         md = ticker_df.loc[ticker_df.index.max()].Date
-    #         current_price = ticker_df.loc[ticker_df.index.max()].Close
-    #
-    #     diff = (md - mbd).days
-    #     is_in_last_box_range = (current_price > last_box_min_y) and (current_price < last_box_max_y)
-    #     is_in_box = (is_in_last_box_range) and diff <= 10
-    # else:
-    #     is_in_box = False
-    #
-    # return [is_in_box, boxes]
 
 def convert_datex(ticker_df, datelines):
     newlines = []
