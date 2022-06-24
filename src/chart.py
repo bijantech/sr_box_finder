@@ -23,6 +23,8 @@ MAGIC_NUMBER = 50
 
 class Chart():
     def __init__(self, ticker_df, args, sample=False):
+        self.sample = None
+        self.covered = None
         self.ticker_df = ticker_df
         self.args = args
         self.is_sample = sample
@@ -316,7 +318,6 @@ def draw_lines(ax, lines):
             linewidth=1,
             color="w",
         )
-
 
 def convert_lines_to_boxes(lines):
     counter = 0

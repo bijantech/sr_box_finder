@@ -273,8 +273,7 @@ def run(args):
                         chart.last_price,
                         chart.price_in_box,
                     ])
-                    print(chart)
-                    # print(errors)
+                    # print(chart)
                     df = df.drop(df[df.symbol == ticker].index)
                     df1 = pd.DataFrame(errors, columns=cols)
                     pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
