@@ -37,7 +37,7 @@ class Chart():
     def __repr__(self):
         return f"""
             ticker:{self.ticker} error:{self.error} covered:{self.covered}
-            outfile:{self.outfile} last_price:{round(self.last_price, 2)} inbox:{self.price_in_box}
+            outfile:{self.outfile} last_price:{round(self.last_price, 2)} price_in_box:{self.price_in_box}
             dif:{self.args.dif} ret:{self.args.retracement_size} num:{self.args.number}
             candles:{self.args.show_candles} zags:{self.args.show_zags}
             is_sample:{self.is_sample} sample:{self.sample}
@@ -64,7 +64,7 @@ class Chart():
         if self.args.side_by_side:
             fig, axs = plt.subplots(
                 1, 2,
-                facecolor=(0,0,0),
+                facecolor="black",
                 sharex=True,
                 sharey=False,
                 figsize=(15, 8),
@@ -74,7 +74,7 @@ class Chart():
         else:
             fig, axs = plt.subplots(
                 1, #2,
-                facecolor=(0,0,0),
+                facecolor="black",
                 sharex=True,
                 sharey=False,
                 figsize=(15, 8),
@@ -98,26 +98,26 @@ class Chart():
 
         if(len(args.tickers)!=1):
             for a in axs:
-                # a.set_ylim(
-                #     [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
-                #      df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
+                a.set_ylim(
+                    [df[df.index > MAGIC_NUMBER].Low[args.ticker].min()*0.95,
+                     df[df.index > MAGIC_NUMBER].High[args.ticker].max()*1.05])
                 if args.show_candles:
                     candlestick2_ohlc(a, df["Open"][args.ticker], df["High"][args.ticker], df["Low"][args.ticker], df["Close"][args.ticker], width=0.5, colorup="g", colordown="r",)
             dfRes = create_zig_zag_points(df.Close[args.ticker], df.MinRetracement[args.ticker]).dropna()
             last_price = ticker_df.Close[args.ticker].iloc[-1]
         else:
             for a in axs:
-                # a.set_ylim(
-                #     [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
-                #      df[df.index > MAGIC_NUMBER].High.max()*1.05])
+                a.set_ylim(
+                    [df[df.index > MAGIC_NUMBER].Low.min()*0.95,
+                     df[df.index > MAGIC_NUMBER].High.max()*1.05])
                 if args.show_candles:
                     candlestick2_ohlc(a, df["Open"], df["High"], df["Low"], df["Close"], width=0.5, colorup="g", colordown="r",)
             dfRes = create_zig_zag_points(df.Close, df.MinRetracement).dropna()
             last_price = ticker_df.iloc[-1].Close
 
-        # for a in axs:
-        #     a.set_xlim([MAGIC_NUMBER,df.index.max()])
-        #     cursor = Cursor(a, color="gray", linewidth=1)
+        for a in axs:
+            a.set_xlim([MAGIC_NUMBER,df.index.max()])
+            cursor = Cursor(a, color="gray", linewidth=1)
 
         lines = None
         if self.is_sample:
@@ -163,8 +163,7 @@ class Chart():
             sample_boxes = convert_lines_to_boxes(sample_lines)
         boxes = []
         if lines and not args.no_boxes:
-            if not args.sample_only:
-                log("experiment")
+            if not args.sample_only: log("experiment")
             boxes = convert_lines_to_boxes(lines)
             draw_boxes(axs[0], boxes, colors=args.colors)
             log("boxes:", len(boxes))
@@ -182,13 +181,34 @@ class Chart():
             except :
                 return ''
 
-        # for a in axs:
-        #     a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+        for a in axs:
+            a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+
+        self.last_price = last_price
+
+        def is_price_in_box(box, last_price):
+            min_y = box.y
+            max_y = box.y + box.height
+            return last_price >= min_y and last_price <= max_y
+
+        # get all boxes which contain the last zag price
+        def last_zag_boxes(boxes, last_zag_price):
+            lzb = []
+            for b in boxes:
+                if is_price_in_box(b, last_zag_price):
+                    lzb.append(b)
+            return lzb
+
+        lzb = last_zag_boxes(boxes, dfRes.Value.iloc[-1])
+        self.price_in_box = False
+        for b in lzb:
+            if is_price_in_box(b, last_price):
+                self.price_in_box = True
 
         if args.optimize:
             plt.savefig(outfile)
         else:
-            # plt.title(ticker)
+            plt.title(args.ticker)
             if args.filter:
                 if is_in_box:
                     # print(args.ticker)
@@ -206,8 +226,6 @@ class Chart():
 
         self.outfile = outfile
         self.boxes = boxes
-        self.last_price = last_price
-        self.price_in_box = False
         if self.is_sample:
             self.sample = outfile
 

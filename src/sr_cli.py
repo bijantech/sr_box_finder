@@ -180,6 +180,12 @@ parser.add_argument(
     required=False,
     help="Show multiple colors for boxes",
 )
+parser.add_argument(
+    "--cli",
+    action="store_true",
+    required=False,
+    help="Know when run from cli to show applicable logs",
+)
 
 def run(args):
     if (args.sectors=="ALL"):
@@ -273,7 +279,7 @@ def run(args):
                         chart.last_price,
                         chart.price_in_box,
                     ])
-                    # print(chart)
+                    if args.cli: print(chart)
                     df = df.drop(df[df.symbol == ticker].index)
                     df1 = pd.DataFrame(errors, columns=cols)
                     pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
@@ -282,4 +288,6 @@ def run(args):
                 raise(e)
 
 if __name__ == "__main__":
-    run(parser.parse_args())
+    args = parser.parse_args()
+    args.cli = True
+    run(args)
