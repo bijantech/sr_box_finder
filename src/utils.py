@@ -28,6 +28,7 @@ from matplotlib.patches import Rectangle
 from mathutil import overlap
 import matplotlib.ticker as ti
 
+colors_ = lambda n: list(map(lambda i: "#" + "%06x" % random.randint(0, 0xFFFFFF),range(n)))
 expire_after = datetime.timedelta(days=3)
 session = requests_cache.CachedSession('yfinance.cache')
     # cache_name='cache', backend='sqlite', expire_after=expire_after)
@@ -194,7 +195,6 @@ def generate_lines(args, ax, dfRes):
     return lines
 
 def draw_boxes(ax, boxes):
-    colors_ = lambda n: list(map(lambda i: "#" + "%06x" % random.randint(0, 0xFFFFFF),range(n)))
     colors = colors_(len(boxes))
     counter = 0
     for box in boxes:

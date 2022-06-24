@@ -191,12 +191,12 @@ def run(args):
         if args.optimize:
             [sample, covered] = draw_chart(ticker_df, args, True)
             sampleimg = Image.open(sample).convert('RGB')
-            total_count = len(difs) * len(rets)
+            total_count = len(args.diffs) * len(args.rets)
             pbar = tqdm(total = total_count)
             counter = 0
-            for dif in difs:
-                for ret in rets:
-                    for num in [2]:
+            for dif in args.diffs:
+                for ret in args.rets:
+                    for num in args.nums:
                         # if dif < seg: continue
                         args.retracement_size = ret
                         args.dif = dif
