@@ -7,3 +7,4 @@ yfinance
 mplfinance
 mplcursors
 jupyter
+requests_cache
