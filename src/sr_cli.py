@@ -285,7 +285,7 @@ def run(args):
                     pd.concat([df1, df]).to_csv(f'data/output.csv', index=False)
             except Exception as e:
                 print("Run failed:", ticker, e)
-                raise(e)
+                # raise(e)
 
 if __name__ == "__main__":
     args = parser.parse_args()
