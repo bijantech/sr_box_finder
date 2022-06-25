@@ -9,3 +9,4 @@ mplcursors
 jupyter
 requests_cache
 imgcompare
+tqdm
