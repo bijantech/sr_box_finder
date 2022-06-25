@@ -98,7 +98,7 @@ parser.add_argument(
     "--stop-date",
     type=str,
     required=False,
-    default="2022-06-18",
+    default="2022-06-24",
     help="Stop Date",
 )
 parser.add_argument(

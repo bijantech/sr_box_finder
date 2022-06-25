@@ -181,8 +181,21 @@ class Chart():
             except :
                 return ''
 
+        # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
+        # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
         for a in axs:
             a.xaxis.set_major_formatter(ti.FuncFormatter(mydate))
+            a.spines['bottom'].set_color('white')
+            a.spines['top'].set_color('white')
+            a.spines['left'].set_color('white')
+            a.spines['right'].set_color('white')
+            a.xaxis.label.set_color('white')
+            a.yaxis.label.set_color('white')
+            a.grid(alpha=0.1)
+            a.title.set_color('white')
+            a.tick_params(axis='x', colors='white')
+            a.tick_params(axis='y', colors='white')
+            plt.setp(a.xaxis.get_majorticklabels(), rotation=15)
 
         self.last_price = last_price
 
@@ -192,18 +205,56 @@ class Chart():
             return last_price >= min_y and last_price <= max_y
 
         # get all boxes which contain the last zag price
-        def last_zag_boxes(boxes, last_zag_price):
+        def last_zag_boxes(boxes, last_zag):
             lzb = []
+
+            last_zag_price = last_zag.Value
+            # TODO volatility normalize
+            if last_zag.Dir < 0:
+                last_zag_price *= 1.02
+            else:
+                last_zag_price *= 0.98
+
             for b in boxes:
                 if is_price_in_box(b, last_zag_price):
                     lzb.append(b)
             return lzb
 
-        lzb = last_zag_boxes(boxes, dfRes.Value.iloc[-1])
-        self.price_in_box = False
-        for b in lzb:
-            if is_price_in_box(b, last_price):
-                self.price_in_box = True
+        # return the coordinates of the overall last box based on last x-val
+        def price_in_last_box(boxes, last_price):
+            maxx = 0
+            for b in boxes:
+                if b.x + b.width > maxx:
+                    maxx = b.x + b.width
+
+            lbs = []
+            for b in boxes:
+                if b.x + b.width == maxx:
+                    lbs.append(b)
+
+            if len(lbs) == 0: return False
+
+            min_y = lbs[0].y
+            max_y = lbs[0].y + lbs[0].height
+            for b in lbs:
+                if b.y < min_y:
+                    min_y = b.y
+                if b.y + b.height > max_y:
+                    max_y = b.y + b.height
+
+            # TODO volatility normalize
+            min_y *= 0.98
+            max_y *= 1.02
+
+            return last_price >= min_y and last_price <= max_y
+
+        self.price_in_box = price_in_last_box(boxes, last_price)
+
+        # lzb = last_zag_boxes(boxes, dfRes.iloc[-1])
+        # self.price_in_box = False
+        # for b in lzb:
+        #     if is_price_in_box(b, last_price):
+        #         self.price_in_box = True
 
         if args.optimize:
             plt.savefig(outfile)
@@ -237,8 +288,6 @@ class Chart():
         # plt.xticks(df.index, labels=df.Date.astype(str))
         # ax.set_xticklabels(labels)
         # plt.xticks(df.index,df.Date)
-        # plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m/%d/%Y'))
-        # plt.gca().xaxis.set_major_locator(mdates.DayLocator())
         # plt.axis('off')
         # plt.xticks(np.arange(300), ['Tom', 'Dick', 'Sue']*100)
         # ax.set_xticks(df.index, df.Date)

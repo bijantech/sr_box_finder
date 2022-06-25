@@ -9,7 +9,6 @@ yahoo_finance.pdr_override()
 from pandas_datareader.yahoo.headers import DEFAULT_HEADERS
 import requests_cache
 import os
-from mathutil import overlap
 
 expire_after = datetime.timedelta(days=3)
 session = requests_cache.CachedSession('yfinance.cache')
