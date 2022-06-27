@@ -14,3 +14,6 @@ python src/sr_cli.py --sector ALL --show-candles --colors
 # from sr_box_filter directory
 PYTHONPATH=$(pwd)/src jupyter notebook
 ```
+
+![screenshot 1](screenshots/1.png)
+![screenshot 2](screenshots/2.png)
